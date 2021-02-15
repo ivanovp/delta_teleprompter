@@ -15,9 +15,10 @@
 #include <SDL/SDL.h>
 
 #define DEFAULT_BG_COLOR        gfx_color_rgb (0x00, 0x00, 0x00)    /* Black */
+#define DEFAULT_TEXT_COLOR      gfx_color_rgb (0xFF, 0xFF, 0xFF)    /* White */
 
-#define VIDEO_SIZE_X_PX         800
-#define VIDEO_SIZE_Y_PX         600
+#define VIDEO_SIZE_X_PX         1024
+#define VIDEO_SIZE_Y_PX         768
 #define VIDEO_DEPTH_BIT         32
 
 #define FONT_SMALL_SIZE_X_PX    8
@@ -42,8 +43,8 @@
 #define gfx_color_rgb(r,g,b)                    ( ( r << 24 ) | ( g << 16 ) | ( b << 8 ) | 0xFF )
 #define gfx_line_draw(x1, y1, x2, y2, color)    lineColor(screen, x1, y1, x2, y2, color)
 #define gfx_font_print(x,y,s)                   stringColor(screen, x, y, s, gfx_color_rgb(0xFF, 0xFF, 0xFF));
-#define gfx_font_print_fromright(x,y,s)         stringColor(screen, x - strlen(s) * FONT_NORMAL_SIZE_X_PX, y, s, gfx_color_rgb(0xFF, 0xFF, 0xFF));
-#define gfx_font_print_center(y,s)              stringColor(screen, screen->w / 2 - strlen(s) / 2 * FONT_NORMAL_SIZE_X_PX, y, s, gfx_color_rgb(0xFF, 0xFF, 0xFF))
+#define gfx_font_print_fromright(x,y,s)         stringColor(screen, x - strlen(s) * FONT_NORMAL_SIZE_X_PX, y, s, DEFAULT_TEXT_COLOR);
+#define gfx_font_print_center(y,s)              stringColor(screen, screen->w / 2 - strlen(s) / 2 * FONT_NORMAL_SIZE_X_PX, y, s, DEFAULT_TEXT_COLOR)
 
 extern SDL_Surface* background;
 extern SDL_Surface* screen;

@@ -22,6 +22,7 @@
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
 #include <SDL/SDL_timer.h>
+#include <SDL/SDL_ttf.h>
 #include <SDL/SDL_gfxPrimitives.h>
 
 #include "common.h"
@@ -52,28 +53,30 @@ typedef struct
 const char* info[] =
 {
     "This is Delta Teleprompter.",
+    "",
     "Copyright (C) Peter Ivanov",
     "<ivanovp@gmail.com>, 2021",
+    "",
     "This program comes with ABSOLUTELY NO",
     "WARRANTY; for details see LICENSE.",
     "This is free software, and you are",
     "welcome to redistribute it under certain",
     "conditions; see LICENSE for details.",
+    "",
     "During play you can use these buttons:",
     "ENTER: Pause text",
     "ESCAPE: Exit",
     "Left/right/up/down: Move",
+    ""
     "Press 'ENTER' to start teleprompter."
 };
 
 const char *homeDir;
 
-/* Game related */
+/* Teleprompter related */
 uint32_t     teleprompterTimer = 0;
 bool_t       teleprompterRunning   = TRUE;
 main_state_machine_t main_state_machine = STATE_undefined;
-
-bool_t       can_load_game = FALSE;
 
 char         scriptFilePath[FSYS_FILENAME_MAX];
 
@@ -96,7 +99,7 @@ mykey_t      keys[MAX_KEYS] = { 0 };
 /* Default configuration, could be overwritten by loadConfig() */
 config_t config =
 {
-    .version = 6,
+    .version = 1,
     .script_file_path = { 0 }
 };
 
@@ -196,15 +199,17 @@ bool_t init (void)
     SDL_Init(SDL_INIT_EVERYTHING);
 
     // Set up screen
-    screen = SDL_SetVideoMode(VIDEO_SIZE_X_PX, VIDEO_SIZE_Y_PX, VIDEO_DEPTH_BIT, SDL_HWSURFACE);
+    screen = SDL_SetVideoMode(VIDEO_SIZE_X_PX, VIDEO_SIZE_Y_PX, VIDEO_DEPTH_BIT, SDL_SWSURFACE
+//                              | SDL_FULLSCREEN
+                              );
 
     // Load background image
-    background = SDL_CreateRGBSurface(SDL_HWSURFACE, VIDEO_SIZE_X_PX, VIDEO_SIZE_Y_PX, VIDEO_DEPTH_BIT, 0, 0, 0, 0);
+    background = SDL_CreateRGBSurface(SDL_SWSURFACE, VIDEO_SIZE_X_PX, VIDEO_SIZE_Y_PX, VIDEO_DEPTH_BIT, 0, 0, 0, 0);
 
     //Apply image to screen
     SDL_BlitSurface( background, NULL, screen, NULL );
 
-#if 0
+#if 1
     // Initialize SDL_ttf library
     if (TTF_Init() != 0)
     {
@@ -215,7 +220,7 @@ bool_t init (void)
 
     // Load a font
     TTF_Font *font;
-    font = TTF_OpenFont("/usr/share/fonts/TTF/FreeSans.ttf", 24);
+    font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", 24);
     if (font == NULL)
     {
         printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
@@ -226,8 +231,8 @@ bool_t init (void)
 
     // Write text to surface
     SDL_Surface *text;
-    SDL_Color text_color = {0, 0, 0};
-    text = TTF_RenderText_Solid(font,
+    SDL_Color text_color = {0xff, 0xff, 0xff};
+    text = TTF_RenderText_Blended(font,
                                 "A journey of a thousand miles begins with a single step.",
                                 text_color);
 
@@ -253,6 +258,7 @@ bool_t init (void)
 
     //Update Screen
     SDL_Flip( screen );
+    SDL_Delay(2000);
 #endif
 
     keys[KEY_UP].repeatTick = NORMAL_REPEAT_TICK;

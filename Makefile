@@ -18,7 +18,7 @@ CPP_OPTS  = -O0 $(INCLUDE) $(W_OPTS) -D_DEBUG -DDATA_DIR=\"$(DATA_DIR)\" -c -ggd
 CC_OPTS   = -O0 $(INCLUDE) $(W_OPTS) -D_DEBUG -DDATA_DIR=\"$(DATA_DIR)\" -c -ggdb3
 CC_OPTS_A = $(CC_OPTS) -D_ASSEMBLER_
 
-LIBS      = -lc -lm -lSDL -lSDL_gfx -lSDL_image
+LIBS      = -lc -lm -lSDL -lSDL_gfx -lSDL_image -lSDL_ttf
 
 LD_OPTS   = $(LIBS) -o $(APP_NAME)
 
