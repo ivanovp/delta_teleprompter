@@ -1,7 +1,7 @@
 /**
- * @file        game_gfx.c
- * @brief       Tetris-like game's common functions
- * @author      (C) Peter Ivanov, 2013, 2014
+ * @file        gfx.c
+ * @brief       Graphic functions
+ * @author      (C) Peter Ivanov, 2013, 2014, 2021
  * 
  * Created:     2013-12-23 11:29:32
  * Last modify: 2021-02-15 18:52:14 ivanovp {Time-stamp}
@@ -76,25 +76,14 @@ void printCommon (void)
 #endif
     if (TELEPROMPTER_IS_FINISHED())
     {
-        gfx_font_print (TEXT_X_0, TEXT_YN(8), "** GAME **");
-        gfx_font_print (TEXT_X_0, TEXT_YN(9), "** OVER **");
-        gfx_font_print (TEXT_X_0, TEXT_YN(10), "Press Enter");
-        gfx_font_print (TEXT_X_0, TEXT_YN(11), "to replay,");
-        gfx_font_print (TEXT_X_0, TEXT_YN(12), "Escape to quit...");
+        gfx_font_print_center(TEXT_YN(11), "Press 'ENTER' to replay,");
+        gfx_font_print_center(TEXT_YN(12), "'ESCAPE' to quit...");
     }
     else if (TELEPROMPTER_IS_PAUSED())
     {
         gfx_font_print(TEXT_X_0, TEXT_YN(8), "** PAUSED **");
         snprintf (s, sizeof (s), "Teleprompter v%i.%i.%i", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
         gfx_font_print(TEXT_X_0, TEXT_Y(11), s);
-        gfx_font_print(TEXT_X_0, TEXT_Y(12), "Copyright (C)");
-        gfx_font_print(TEXT_X_0, TEXT_Y(13), "Peter Ivanov,");
-        gfx_font_print(TEXT_X_0, TEXT_Y(14), "2021");
-        gfx_font_print(TEXT_X_0, TEXT_Y(15), "ivanovp@gmail.com");
-        gfx_font_print(TEXT_X_0, TEXT_Y(16), "http://dev.ivanov.eu");
-        gfx_font_print(TEXT_X_0, TEXT_Y(17), "Licence: GPLv3");
-        gfx_font_print(TEXT_X_0, TEXT_Y(18), "ABSOLUTELY");
-        gfx_font_print(TEXT_X_0, TEXT_Y(19), "NO WARRANTY!");
     }
     else
     {

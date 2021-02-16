@@ -1,10 +1,10 @@
 /**
- * @file        game_gfx.c
- * @brief       Header of tetris-like game's common functions
- * @author      (C) Peter Ivanov, 2013, 2014
+ * @file        gfx.h
+ * @brief       Header of graphic functions
+ * @author      (C) Peter Ivanov, 2013, 2014, 2021
  * 
  * Created:     2013-12-23 11:29:32
- * Last modify: 2014-01-15 09:21:58 ivanovp {Time-stamp}
+ * Last modify: 2021-02-16 17:51:58 ivanovp {Time-stamp}
  * Licence:     GPL
  */
 #ifndef INCLUDE_GFX_H

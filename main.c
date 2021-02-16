@@ -18,6 +18,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <pwd.h>
+#include <errno.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
@@ -28,19 +29,22 @@
 #include "common.h"
 #include "gfx.h"
 
-#define CONFIG_DIR              "/.delta_teleprompter"
-#define CONFIG_FILENAME         CONFIG_DIR "/teleprompter.bin"
+#define CONFIG_DIR                  "/.delta_teleprompter"
+#define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
 
-#define MAX_KEYS                6
-#define KEY_UP                  0
-#define KEY_DOWN                1
-#define KEY_LEFT                2
-#define KEY_RIGHT               3
-#define KEY_ENTER               4
-#define KEY_SPACE               5
+#define MAX_KEYS                    6
+#define KEY_UP                      0
+#define KEY_DOWN                    1
+#define KEY_LEFT                    2
+#define KEY_RIGHT                   3
+#define KEY_ENTER                   4
+#define KEY_SPACE                   5
 
-#define FAST_REPEAT_TICK        150
-#define NORMAL_REPEAT_TICK      250
+#define FAST_REPEAT_TICK            150
+#define NORMAL_REPEAT_TICK          250
+
+#define DEFAULT_INTRO_TIMER         250
+#define DEFAULT_LOAD_SCRIPT_TIMER   250
 
 typedef struct
 {
@@ -55,6 +59,8 @@ const char* info[] =
     "This is Delta Teleprompter.",
     "",
     "Copyright (C) Peter Ivanov <ivanovp@gmail.com>, 2021",
+    "Homepage: http://dev.ivanov.eu",
+    "Licence: GPLv3",
     "",
     "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.",
     "This is free software, and you are welcome to redistribute it under certain",
@@ -71,11 +77,14 @@ const char* info[] =
 const char *homeDir;
 
 /* Teleprompter related */
+uint32_t     introTimer = DEFAULT_INTRO_TIMER;
+uint32_t     loadScriptTimer = DEFAULT_LOAD_SCRIPT_TIMER;
 uint32_t     teleprompterTimer = 0;
 bool_t       teleprompterRunning   = TRUE;
 main_state_machine_t main_state_machine = STATE_undefined;
+main_state_machine_t main_state_machine_next = STATE_undefined;
 
-char         scriptFilePath[FSYS_FILENAME_MAX];
+char         scriptFilePath[FSYS_FILENAME_MAX] = "script.txt";
 
 mykey_t      keys[MAX_KEYS] = { 0 };
 
@@ -106,6 +115,8 @@ SDL_Surface* screen = NULL;
 bool_t textInputIsStarted = FALSE;
 char * text = NULL;
 uint32_t textLength = 0;
+TTF_Font *ttf_font = NULL;
+char * scriptBuffer = NULL;
 
 /**
  * Set up default configuration and load if configuration file exists.
@@ -171,6 +182,105 @@ bool_t saveConfig (void)
 }
 
 /**
+ * @brief loadScript Load script from file.
+ * @return TRUE: if script successfully loaded. FALSE: if error occured. Error text is printed to screen.
+ */
+bool_t loadScript(const char * aScriptFilePath)
+{
+    bool_t  ok = FALSE;
+    FILE  * file;
+    size_t  fileSize;
+    size_t  readBytes;
+
+    drawInfoScreen("Loading script...");
+
+    if (scriptBuffer)
+    {
+        printf("Releasing memory... ");
+        free(scriptBuffer);
+        scriptBuffer = NULL;
+        printf("Done\n");
+    }
+
+    printf("Open file %s ... ", aScriptFilePath);
+    file = fopen(aScriptFilePath, "r");
+    if (file)
+    {
+        printf("Done.\n");
+        if (fseek(file, 0, SEEK_END) == 0)
+        {
+            fileSize = ftell(file);
+            if (fileSize)
+            {
+                if (fseek(file, 0, SEEK_SET) == 0)
+                {
+                    printf("Script size: %lu\n", fileSize);
+                    printf("Allocating memory... ");
+                    scriptBuffer = malloc(fileSize);
+                    if (scriptBuffer)
+                    {
+                        printf("Done.\n");
+                        readBytes = fread(scriptBuffer, 1, fileSize, file);
+                        printf("%lu bytes were read\n", readBytes);
+                        if (readBytes == fileSize)
+                        {
+                            drawInfoScreen("Script loaded.");
+                            ok = TRUE;
+                        }
+                        else
+                        {
+                            printf("errno: %i\n", errno);
+                            printf("strerror: %s\n", strerror(errno));
+                            drawInfoScreen("ERROR: Cannot read from script file!");
+                        }
+                    }
+                    else
+                    {
+                        printf("Error!\n");
+                        drawInfoScreen("ERROR: Cannot allocate memory for script!");
+                    }
+                }
+                else
+                {
+                    drawInfoScreen("ERROR: Cannot seek to beginning of file!");
+                }
+            }
+            else
+            {
+                drawInfoScreen("ERROR: File is empty!");
+            }
+        }
+        else
+        {
+            drawInfoScreen("ERROR: Cannot seek to end of file!");
+        }
+        printf("Closing file... ");
+        if (!fclose(file))
+        {
+            printf("Done.\n");
+        }
+        else
+        {
+            printf("Error!\n");
+        }
+    }
+    else
+    {
+        drawInfoScreen("ERROR: Cannot open script file!");
+    }
+
+    return ok;
+}
+
+
+bool_t wrapScript(void)
+{
+    bool_t ok = TRUE;
+
+    return ok;
+}
+
+/**
  * @brief init
  * Initialize teleprompter.
  *
@@ -199,13 +309,12 @@ bool_t init (void)
 //                              | SDL_FULLSCREEN
                               );
 
-    // Load background image
+    // Create background image
     background = SDL_CreateRGBSurface(SDL_SWSURFACE, VIDEO_SIZE_X_PX, VIDEO_SIZE_Y_PX, VIDEO_DEPTH_BIT, 0, 0, 0, 0);
 
     //Apply image to screen
     SDL_BlitSurface( background, NULL, screen, NULL );
 
-#if 1
     // Initialize SDL_ttf library
     if (TTF_Init() != 0)
     {
@@ -214,10 +323,9 @@ bool_t init (void)
         exit(1);
     }
 
-    // Load a font
-    TTF_Font *font;
-    font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", 24);
-    if (font == NULL)
+    // Load a ttf_font
+    ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", 24);
+    if (ttf_font == NULL)
     {
         printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
         TTF_Quit();
@@ -225,14 +333,15 @@ bool_t init (void)
         exit(1);
     }
 
+#if 0
     // Write text to surface
-    SDL_Surface *text;
-    SDL_Color text_color = {0xff, 0xff, 0xff, 0};
-    text = TTF_RenderText_Blended(font,
+    SDL_Surface *sdl_text;
+    SDL_Color sdl_text_color = {0xff, 0xff, 0xff, 0};
+    sdl_text = TTF_RenderText_Blended(ttf_font,
                                 "A journey of a thousand miles begins with a single step.",
-                                text_color);
+                                sdl_text_color);
 
-    if (text == NULL)
+    if (sdl_text == NULL)
     {
         printf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
         TTF_Quit();
@@ -240,14 +349,14 @@ bool_t init (void)
         exit(1);
     }
 
-    SDL_Rect rect;
-    rect.x = 10;
-    rect.y = 450;
-    rect.w = text->clip_rect.w;
-    rect.h = text->clip_rect.h;
+    SDL_Rect sdl_rect;
+    sdl_rect.x = 10;
+    sdl_rect.y = 450;
+    sdl_rect.w = sdl_text->clip_rect.w;
+    sdl_rect.h = sdl_text->clip_rect.h;
 
     // Apply the text to the display
-    if (SDL_BlitSurface(text, NULL, screen, &rect) != 0)
+    if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
     {
         printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
     }
@@ -308,22 +417,21 @@ void handleMovement (void)
 /**
  * @brief handle_main_state_machine
  * Check inputs and change state machine if it is necessary.
- * @return TRUE: if teleprompter shall be started again.
  */
-bool_t handleMainStateMachine (void)
+void handleMainStateMachine (void)
 {
-    bool_t replay = FALSE;
     uint8_t i;
 
     switch (main_state_machine)
     {
         case STATE_intro:
-            if (enterPressed && enterChanged)
+            introTimer--;
+            if ((enterPressed && enterChanged) || !introTimer)
             {
                 main_state_machine = STATE_load_script;
             }
-            SDL_BlitSurface( background, NULL, screen, NULL );
-            uint16_t y_center = VIDEO_SIZE_Y_PX / FONT_SMALL_SIZE_Y_PX / 2 - ( sizeof(info) / sizeof(info[0]) / 2 );
+            SDL_BlitSurface(background, NULL, screen, NULL);
+            uint16_t y_center = VIDEO_SIZE_Y_PX / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(info) / sizeof(info[0]) / 2);
             for (i = 0; i < sizeof(info) / sizeof(info[0]); i++)
             {
                 gfx_font_print_center(TEXT_Y(y_center + i), (char*) info[i]);
@@ -331,8 +439,24 @@ bool_t handleMainStateMachine (void)
             SDL_Flip(screen);
             break;
         case STATE_load_script:
-            // TODO
-            main_state_machine = STATE_running;
+            if (loadScript(scriptFilePath))
+            {
+                /* Script successfully loaded, immediately show it */
+                main_state_machine = STATE_running;
+            }
+            else
+            {
+                /* Error occured, leave error message on the screen for a while */
+                main_state_machine_next = STATE_end;
+                main_state_machine = STATE_load_script_wait;
+            }
+            break;
+        case STATE_load_script_wait:
+            loadScriptTimer--;
+            if (!loadScriptTimer)
+            {
+                main_state_machine = main_state_machine_next;
+            }
             break;
         case STATE_running:
             handleMovement ();
@@ -340,14 +464,7 @@ bool_t handleMainStateMachine (void)
             {
                 main_state_machine = STATE_paused;
             }
-//            if (isGameOver ())
-//            {
-//                main_state_machine = STATE_end;
-//            }
-//            else
-            {
-                drawScreen ();
-            }
+            drawScreen ();
             break;
         case STATE_paused:
             if (enterPressed && enterChanged)
@@ -360,7 +477,9 @@ bool_t handleMainStateMachine (void)
             if (enterPressed && enterChanged)
             {
                 /* Restart teleprompter */
-                replay = TRUE;
+                introTimer = DEFAULT_INTRO_TIMER;
+                loadScriptTimer = DEFAULT_LOAD_SCRIPT_TIMER;
+                main_state_machine = STATE_load_script;
             }
             drawScreen ();
             break;
@@ -369,8 +488,6 @@ bool_t handleMainStateMachine (void)
             /* This should not happen */
             break;
     }
-
-    return replay;
 }
 
 void key_pressed(uint8_t key_index, bool_t pressed)
@@ -522,6 +639,14 @@ void run (void)
 void done (void)
 {
     saveConfig ();
+
+    if (scriptBuffer)
+    {
+        printf("Releasing memory... ");
+        free(scriptBuffer);
+        scriptBuffer = NULL;
+        printf("Done\n");
+    }
 
     //Free the loaded image
     SDL_FreeSurface(background);
