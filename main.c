@@ -19,6 +19,7 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <errno.h>
+#include <locale.h>
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
@@ -46,6 +47,13 @@
 #define DEFAULT_INTRO_TIMER         250
 #define DEFAULT_LOAD_SCRIPT_TIMER   250
 
+typedef struct linkedListElement_tag
+{
+    void* item;                            /* Data to store in the element */
+    struct linkedListElement_tag* next;    /* Next element, NULL if it is the last one. */
+    struct linkedListElement_tag* prev;    /* Previous element, NULL if it is the first one. */
+} linkedListElement_t;
+
 typedef struct
 {
   bool_t pressed;
@@ -53,6 +61,22 @@ typedef struct
   uint32_t pressTick;
   uint32_t repeatTick;
 } mykey_t;
+
+mykey_t      keys[MAX_KEYS] = { 0 };
+
+#define leftPressed   keys[KEY_LEFT].pressed
+#define rightPressed  keys[KEY_RIGHT].pressed
+#define downPressed   keys[KEY_DOWN].pressed
+#define upPressed     keys[KEY_UP].pressed
+#define enterPressed  keys[KEY_ENTER].pressed
+#define spacePressed  keys[KEY_SPACE].pressed
+
+#define leftChanged   keys[KEY_LEFT].changed
+#define rightChanged  keys[KEY_RIGHT].changed
+#define downChanged   keys[KEY_DOWN].changed
+#define upChanged     keys[KEY_UP].changed
+#define enterChanged  keys[KEY_ENTER].changed
+#define spaceChanged  keys[KEY_SPACE].changed
 
 const char* info[] =
 {
@@ -76,6 +100,13 @@ const char* info[] =
 
 const char *homeDir;
 
+/* Default configuration, could be overwritten by loadConfig() */
+config_t config =
+{
+    .version = 1,
+    .script_file_path = { 0 }
+};
+
 /* Teleprompter related */
 uint32_t     introTimer = DEFAULT_INTRO_TIMER;
 uint32_t     loadScriptTimer = DEFAULT_LOAD_SCRIPT_TIMER;
@@ -86,29 +117,6 @@ main_state_machine_t main_state_machine_next = STATE_undefined;
 
 char         scriptFilePath[FSYS_FILENAME_MAX] = "script.txt";
 
-mykey_t      keys[MAX_KEYS] = { 0 };
-
-#define leftPressed   keys[KEY_LEFT].pressed
-#define rightPressed  keys[KEY_RIGHT].pressed
-#define downPressed   keys[KEY_DOWN].pressed
-#define upPressed     keys[KEY_UP].pressed
-#define enterPressed  keys[KEY_ENTER].pressed
-#define spacePressed  keys[KEY_SPACE].pressed
-
-#define leftChanged   keys[KEY_LEFT].changed
-#define rightChanged  keys[KEY_RIGHT].changed
-#define downChanged   keys[KEY_DOWN].changed
-#define upChanged     keys[KEY_UP].changed
-#define enterChanged  keys[KEY_ENTER].changed
-#define spaceChanged  keys[KEY_SPACE].changed
-
-/* Default configuration, could be overwritten by loadConfig() */
-config_t config =
-{
-    .version = 1,
-    .script_file_path = { 0 }
-};
-
 // The images
 SDL_Surface* background = NULL;
 SDL_Surface* screen = NULL;
@@ -117,6 +125,77 @@ char * text = NULL;
 uint32_t textLength = 0;
 TTF_Font *ttf_font = NULL;
 char * scriptBuffer = NULL;
+SDL_Color sdl_text_color = {0xff, 0xff, 0xff, 0};
+linkedListElement_t* wrappedScript_first = NULL;     /**< First line of wrapped text */
+linkedListElement_t* wrappedScript_last = NULL;      /**< Last line of wrapped text */
+linkedListElement_t* wrappedScript_actual = NULL;    /**< Actual line of wrapped text */
+linkedListElement_t** wrappedScript_it = NULL;       /**< Playlist iterator. Used to build wrappedScript. */
+linkedListElement_t* wrappedScript_it_prev = NULL;   /**< Playlist previous element. Used to build wrappedScript. */
+
+/**
+ * Allocate memory for a new element of linked list.
+ *
+ * @param[in] aItem Linked list item to store.
+ * @param[in] aPrev Previous linked list item.
+ */
+linkedListElement_t* addElement (void* aItem, linkedListElement_t* aPrev)
+{
+    linkedListElement_t* linkedList = NULL;
+
+    linkedList = malloc (sizeof (linkedListElement_t));
+    if (linkedList)
+    {
+        linkedList->item = aItem;
+        linkedList->prev = aPrev;
+    }
+
+    return linkedList;
+}
+
+/**
+ * @brief freeElement
+ * Releases memory of a linked list's item and linked list element too.
+ *
+ * @param aLinkedList
+ * @return
+ */
+linkedListElement_t* freeElement (linkedListElement_t* aLinkedList)
+{
+    linkedListElement_t* next = NULL;
+
+    if (aLinkedList)
+    {
+        next = aLinkedList->next;
+        if (aLinkedList->item)
+        {
+            free (aLinkedList->item);
+        }
+        free (aLinkedList);
+    }
+
+    return next;
+}
+
+/**
+ * @brief freeLinkedList
+ * @param aFirstLinkedList
+ */
+void freeLinkedList (linkedListElement_t* aFirstLinkedList)
+{
+    linkedListElement_t* linkedList = aFirstLinkedList;
+    bool_t end = FALSE;
+    bool_t first = TRUE;
+
+    while (linkedList && !end)
+    {
+        if (!first && linkedList == aFirstLinkedList)
+        {
+            end = TRUE;
+        }
+        linkedList = freeElement (linkedList);
+        first = FALSE;
+    }
+}
 
 /**
  * Set up default configuration and load if configuration file exists.
@@ -216,7 +295,7 @@ bool_t loadScript(const char * aScriptFilePath)
                 {
                     printf("Script size: %lu\n", fileSize);
                     printf("Allocating memory... ");
-                    scriptBuffer = malloc(fileSize);
+                    scriptBuffer = malloc(fileSize + 1); // +1 end of string
                     if (scriptBuffer)
                     {
                         printf("Done.\n");
@@ -224,6 +303,7 @@ bool_t loadScript(const char * aScriptFilePath)
                         printf("%lu bytes were read\n", readBytes);
                         if (readBytes == fileSize)
                         {
+                            scriptBuffer[fileSize] = 0; // end of string
                             drawInfoScreen("Script loaded.");
                             ok = TRUE;
                         }
@@ -272,10 +352,141 @@ bool_t loadScript(const char * aScriptFilePath)
     return ok;
 }
 
-
-bool_t wrapScript(void)
+bool_t addScriptElement(char * start_ptr, char * end_ptr)
 {
     bool_t ok = TRUE;
+    size_t len;
+    len = end_ptr - start_ptr;
+    char * linkedListText = malloc(len);
+    if (linkedListText)
+    {
+        strncpy(linkedListText, start_ptr, end_ptr - start_ptr);
+        linkedListText[len] = 0; // end of string
+        printf("selected text: [%s]\n", linkedListText);
+
+        (*wrappedScript_it) = addElement (linkedListText, wrappedScript_it_prev);
+        if (*wrappedScript_it)
+        {
+            wrappedScript_last = (*wrappedScript_it);
+            wrappedScript_it_prev = *wrappedScript_it;
+            wrappedScript_it = &((*wrappedScript_it)->next);
+        }
+        else
+        {
+            printf("ERROR: cannot allocate memory for list element!\n");
+            ok = FALSE;
+        }
+    }
+    else
+    {
+        printf("ERROR: cannot allocate memory for text!\n");
+        ok = FALSE;
+    }
+
+    return ok;
+}
+
+bool_t wrapScript(uint16_t max_width_px)
+{
+    bool_t   ok = TRUE;
+    uint32_t i;
+    char   * start_ptr;
+    char   * end_ptr;
+    char   * prev_end_ptr;
+    int      width_px;
+    int      height_px;
+    char     text[1024];
+    size_t   len;
+
+    start_ptr = scriptBuffer;
+    end_ptr = start_ptr;
+    prev_end_ptr = start_ptr;
+
+    freeLinkedList( wrappedScript_first );
+    wrappedScript_it = &(wrappedScript_first);
+
+    for (i = 0; scriptBuffer[i] && ok; i++)
+    {
+        if (IS_WHITESPACE(scriptBuffer[i]))
+        {
+            // Search end of white spaces
+            for (; IS_WHITESPACE(scriptBuffer[i]); i++)
+            {
+                // replace \n and \t with space
+                // TODO interpret new line and start a new line?
+                scriptBuffer[i] = ' ';
+            }
+
+            prev_end_ptr = end_ptr;
+            end_ptr = &scriptBuffer[i];
+            len = (uintptr_t)end_ptr - (uintptr_t)start_ptr;
+            if (len < sizeof(text) - 1) // -1 due to end of string
+            {
+                strncpy(text, start_ptr, end_ptr - start_ptr);
+                text[len] = 0; // end of string
+//                printf("text: [%s]\n", text);
+                TTF_SizeUTF8(ttf_font, text, &width_px, &height_px);
+//                printf("width_px: %i height_px: %i\n", width_px, height_px);
+
+#if 0
+                //----------------------------------------------------------------- FIXME debug
+                //Apply background to screen
+                SDL_BlitSurface( background, NULL, screen, NULL );
+
+                SDL_Surface *sdl_text;
+                sdl_text = TTF_RenderUTF8_Blended(ttf_font, text, sdl_text_color);
+                if (sdl_text == NULL)
+                {
+                    printf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
+                    TTF_Quit();
+                    SDL_Quit();
+                    exit(1);
+                }
+
+                SDL_Rect sdl_rect;
+                sdl_rect.x = 0;
+                sdl_rect.y = VIDEO_SIZE_Y_PX / 2;
+                sdl_rect.w = sdl_text->clip_rect.w;
+                sdl_rect.h = sdl_text->clip_rect.h;
+
+                // Apply the text to the display
+                if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
+                {
+                    printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
+                }
+
+                //Update Screen
+                SDL_Flip( screen );
+                SDL_Delay(200);
+
+                key_task(); // FIXME debug
+                if (!teleprompterRunning) return false; // FIXME debug
+                //----------------------------------------------------------------- FIXME debug
+#endif
+                if (width_px >= max_width_px)
+                {
+                    ok = addScriptElement(start_ptr, prev_end_ptr);
+                    start_ptr = prev_end_ptr;
+                }
+            }
+            else
+            {
+                printf("ERROR: Text too long!\n");
+                ok = FALSE;
+            }
+        }
+    }
+
+    if (ok)
+    {
+        addScriptElement(start_ptr, &scriptBuffer[i]);
+    }
+    else
+    {
+        /* Error occurred: free linked list */
+        // FIXME display some text?
+        freeLinkedList(wrappedScript_first);
+    }
 
     return ok;
 }
@@ -290,6 +501,7 @@ bool_t init (void)
 {
     char path[256];
 
+    setlocale(LC_ALL, ""); // FIXME needed?
     srand(time(NULL));
 
     homeDir = getenv ("HOME");
@@ -336,7 +548,6 @@ bool_t init (void)
 #if 0
     // Write text to surface
     SDL_Surface *sdl_text;
-    SDL_Color sdl_text_color = {0xff, 0xff, 0xff, 0};
     sdl_text = TTF_RenderText_Blended(ttf_font,
                                 "A journey of a thousand miles begins with a single step.",
                                 sdl_text_color);
@@ -441,8 +652,15 @@ void handleMainStateMachine (void)
         case STATE_load_script:
             if (loadScript(scriptFilePath))
             {
-                /* Script successfully loaded, immediately show it */
-                main_state_machine = STATE_running;
+                if (wrapScript(VIDEO_SIZE_X_PX))
+                {
+                    /* Script successfully loaded, immediately show it */
+                    main_state_machine = STATE_running;
+                }
+                else
+                {
+                    // TODO what next?
+                }
             }
             else
             {

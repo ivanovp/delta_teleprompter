@@ -27,6 +27,12 @@
 #define TRUE    (1)
 #endif
 
+#define CHR_SPACE                   ' '
+#define CHR_CR                      '\r'
+#define CHR_LF                      '\n'
+#define CHR_TAB                     '\t'
+#define IS_WHITESPACE(c)    ((c) == CHR_SPACE || (c) == CHR_CR || (c) == CHR_LF || (c) == CHR_TAB)
+
 #define BIT0    0x01u
 #define BIT1    0x02u
 #define BIT2    0x04u
