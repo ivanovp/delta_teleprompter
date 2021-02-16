@@ -54,13 +54,10 @@ const char* info[] =
 {
     "This is Delta Teleprompter.",
     "",
-    "Copyright (C) Peter Ivanov",
-    "<ivanovp@gmail.com>, 2021",
+    "Copyright (C) Peter Ivanov <ivanovp@gmail.com>, 2021",
     "",
-    "This program comes with ABSOLUTELY NO",
-    "WARRANTY; for details see LICENSE.",
-    "This is free software, and you are",
-    "welcome to redistribute it under certain",
+    "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.",
+    "This is free software, and you are welcome to redistribute it under certain",
     "conditions; see LICENSE for details.",
     "",
     "During play you can use these buttons:",
@@ -117,7 +114,7 @@ void loadConfig (void)
 {
     FILE* configFile;
     config_t configTemp;
-    uint8_t path[256];
+    char path[256];
 
     drawInfoScreen ("Loading configuration...");
 
@@ -145,7 +142,7 @@ bool_t saveConfig (void)
 {
     bool_t ok = FALSE;
     FILE* configFile;
-    uint8_t path[256];
+    char path[256];
 
     drawInfoScreen ("Saving configuration...");
 
@@ -181,8 +178,7 @@ bool_t saveConfig (void)
  */
 bool_t init (void)
 {
-    int i;
-    uint8_t path[256];
+    char path[256];
 
     srand(time(NULL));
 
@@ -231,7 +227,7 @@ bool_t init (void)
 
     // Write text to surface
     SDL_Surface *text;
-    SDL_Color text_color = {0xff, 0xff, 0xff};
+    SDL_Color text_color = {0xff, 0xff, 0xff, 0};
     text = TTF_RenderText_Blended(font,
                                 "A journey of a thousand miles begins with a single step.",
                                 text_color);
@@ -317,7 +313,6 @@ void handleMovement (void)
 bool_t handleMainStateMachine (void)
 {
     bool_t replay = FALSE;
-    char s[32];
     uint8_t i;
 
     switch (main_state_machine)
@@ -328,9 +323,10 @@ bool_t handleMainStateMachine (void)
                 main_state_machine = STATE_load_script;
             }
             SDL_BlitSurface( background, NULL, screen, NULL );
+            uint16_t y_center = VIDEO_SIZE_Y_PX / FONT_SMALL_SIZE_Y_PX / 2 - ( sizeof(info) / sizeof(info[0]) / 2 );
             for (i = 0; i < sizeof(info) / sizeof(info[0]); i++)
             {
-                gfx_font_print_center(TEXT_Y(i), (char*) info[i]);
+                gfx_font_print_center(TEXT_Y(y_center + i), (char*) info[i]);
             }
             SDL_Flip(screen);
             break;

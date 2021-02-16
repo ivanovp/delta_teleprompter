@@ -17,6 +17,8 @@
 #define DEFAULT_BG_COLOR        gfx_color_rgb (0x00, 0x00, 0x00)    /* Black */
 #define DEFAULT_TEXT_COLOR      gfx_color_rgb (0xFF, 0xFF, 0xFF)    /* White */
 
+//#define VIDEO_SIZE_X_PX         640
+//#define VIDEO_SIZE_Y_PX         480
 #define VIDEO_SIZE_X_PX         1024
 #define VIDEO_SIZE_Y_PX         768
 #define VIDEO_DEPTH_BIT         32
