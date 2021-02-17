@@ -11,8 +11,9 @@
 #ifndef INCLUDE_LINKEDLIST_H
 #define INCLUDE_LINKEDLIST_H
 
-#include "common.h"
 #include <stdint.h>
+
+#include "common.h"
 
 typedef struct linkedListElement_tag
 {

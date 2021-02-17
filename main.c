@@ -30,6 +30,7 @@
 #include "common.h"
 #include "gfx.h"
 #include "linkedlist.h"
+#include "script.h"
 
 #define CONFIG_DIR                  "/.delta_teleprompter"
 #define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
@@ -117,11 +118,14 @@ SDL_Surface* screen = NULL;
 bool_t textInputIsStarted = FALSE;
 char * text = NULL;
 uint32_t textLength = 0;
-TTF_Font *ttf_font = NULL;
 char * scriptBuffer = NULL;
-SDL_Color sdl_text_color = {0xff, 0xff, 0xff, 0};
-linkedList_t wrappedScriptList = { 0 };
-uint32_t wrappedScriptHeightPx = 0;
+wrappedScript_t wrappedScript =
+{
+    .ttf_font = NULL,
+    .sdl_text_color = {0xff, 0xff, 0xff, 0},
+    .wrappedScriptList = { 0 },
+    .wrappedScriptHeightPx = 0
+};
 
 /**
  * Set up default configuration and load if configuration file exists.
@@ -282,7 +286,7 @@ bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
     return ok;
 }
 
-bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWrappedScriptList, uint32_t * aWrappedScriptHeightPx)
+bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * aWrappedScript)
 {
     bool_t   ok = TRUE;
     uint32_t i;
@@ -299,9 +303,9 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWr
     end_ptr = start_ptr;
     prev_end_ptr = start_ptr;
 
-    freeLinkedList( aWrappedScriptList->first );
+    freeLinkedList(aWrappedScript->wrappedScriptList.first);
     // Initialize iterator
-    aWrappedScriptList->it = &(aWrappedScriptList->first);
+    aWrappedScript->wrappedScriptList.it = &(aWrappedScript->wrappedScriptList.first);
 
     for (i = 0; aScriptBuffer[i] && ok; i++)
     {
@@ -323,7 +327,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWr
                 strncpy(text, start_ptr, end_ptr - start_ptr);
                 text[len] = 0; // end of string
 //                printf("text: [%s]\n", text);
-                TTF_SizeUTF8(ttf_font, text, &width_px, &height_px);
+                TTF_SizeUTF8(aWrappedScript->ttf_font, text, &width_px, &height_px);
                 wrapper_script_height_px += height_px;
 //                printf("width_px: %i height_px: %i\n", width_px, height_px);
 
@@ -364,7 +368,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWr
 #endif
                 if (width_px >= aMaxWidthPx)
                 {
-                    ok = addScriptElement(start_ptr, prev_end_ptr, aWrappedScriptList);
+                    ok = addScriptElement(start_ptr, prev_end_ptr, &(aWrappedScript->wrappedScriptList));
                     start_ptr = prev_end_ptr;
                 }
             }
@@ -378,15 +382,15 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWr
 
     if (ok)
     {
-        addScriptElement(start_ptr, &aScriptBuffer[i], aWrappedScriptList);
-        aWrappedScriptList->actual = aWrappedScriptList->first;
-        *aWrappedScriptHeightPx = wrapper_script_height_px;
+        addScriptElement(start_ptr, &aScriptBuffer[i], &(aWrappedScript->wrappedScriptList));
+        aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.first;
+        aWrappedScript->wrappedScriptHeightPx = wrapper_script_height_px;
     }
     else
     {
         /* Error occurred: free linked list */
         // FIXME display some text?
-        freeLinkedList(aWrappedScriptList->first);
+        freeLinkedList(aWrappedScript->wrappedScriptList.first);
     }
 
     return ok;
@@ -451,8 +455,8 @@ bool_t init (void)
     }
 
     // Load a ttf_font
-    ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", 24);
-    if (ttf_font == NULL)
+    wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", 24);
+    if (wrappedScript.ttf_font == NULL)
     {
         printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
         TTF_Quit();
@@ -567,7 +571,7 @@ void handleMainStateMachine (void)
         case STATE_load_script:
             if (loadScript(scriptFilePath, &scriptBuffer))
             {
-                if (wrapScript(scriptBuffer, VIDEO_SIZE_X_PX, &wrappedScriptList, &wrappedScriptHeightPx))
+                if (wrapScript(scriptBuffer, VIDEO_SIZE_X_PX, &wrappedScript))
                 {
 //                    printScript(&wrappedScriptList);
                     /* Script successfully loaded, immediately show it */
@@ -782,12 +786,14 @@ void done (void)
         printf("Done\n");
     }
 
-    if (wrappedScriptList.first)
+    if (wrappedScript.wrappedScriptList.first)
     {
         printf("Releasing linked list... ");
-        freeLinkedList(wrappedScriptList.first);
+        freeLinkedList(wrappedScript.wrappedScriptList.first);
         printf("Done\n");
     }
+
+    TTF_CloseFont(wrappedScript.ttf_font);
 
     //Free the loaded image
     SDL_FreeSurface(background);

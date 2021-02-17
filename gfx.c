@@ -21,10 +21,9 @@
 #include "common.h"
 #include "gfx.h"
 #include "linkedlist.h"
+#include "script.h"
 
-extern TTF_Font *ttf_font;
-extern SDL_Color sdl_text_color;
-extern linkedList_t wrappedScriptList;
+extern wrappedScript_t wrappedScript;
 
 SDL_Surface * loadImage(const char* filename)
 {
@@ -156,7 +155,7 @@ void drawScreen (void)
 //    if (TELEPROMPTER_IS_PAUSED() || TELEPROMPTER_IS_FINISHED())
 //    {
 //    }
-    drawScript(&wrappedScriptList, ttf_font, &sdl_text_color);
+    drawScript(&wrappedScript.wrappedScriptList, wrappedScript.ttf_font, &wrappedScript.sdl_text_color);
 
     SDL_Flip( screen );
 }

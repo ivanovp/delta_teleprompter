@@ -9,5 +9,6 @@ SOURCES += ./gfx.c \
 
 HEADERS += ./common.h \
 ./linkedlist.h \
+./script.h \
 ./gfx.h
 

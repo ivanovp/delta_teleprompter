@@ -10,9 +10,10 @@
 #ifndef INCLUDE_GFX_H
 #define INCLUDE_GFX_H
 
-#include "common.h"
-
 #include <SDL/SDL.h>
+
+#include "common.h"
+#include "linkedlist.h"
 
 #define DEFAULT_BG_COLOR        gfx_color_rgb (0x00, 0x00, 0x00)    /* Black */
 #define DEFAULT_TEXT_COLOR      gfx_color_rgb (0xFF, 0xFF, 0xFF)    /* White */
