@@ -115,7 +115,7 @@ void drawScreen (void)
 
 /**
  * Prints message in the center of screen.
- * Note: gameDisplay shall be initialized to use this function!
+ * Note: display shall be initialized to use this function!
  *
  * @param aInfo Text to print.
  */

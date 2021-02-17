@@ -29,6 +29,7 @@
 
 #include "common.h"
 #include "gfx.h"
+#include "linkedlist.h"
 
 #define CONFIG_DIR                  "/.delta_teleprompter"
 #define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
@@ -46,13 +47,6 @@
 
 #define DEFAULT_INTRO_TIMER         250
 #define DEFAULT_LOAD_SCRIPT_TIMER   250
-
-typedef struct linkedListElement_tag
-{
-    void* item;                            /* Data to store in the element */
-    struct linkedListElement_tag* next;    /* Next element, NULL if it is the last one. */
-    struct linkedListElement_tag* prev;    /* Previous element, NULL if it is the first one. */
-} linkedListElement_t;
 
 typedef struct
 {
@@ -126,76 +120,7 @@ uint32_t textLength = 0;
 TTF_Font *ttf_font = NULL;
 char * scriptBuffer = NULL;
 SDL_Color sdl_text_color = {0xff, 0xff, 0xff, 0};
-linkedListElement_t* wrappedScript_first = NULL;     /**< First line of wrapped text */
-linkedListElement_t* wrappedScript_last = NULL;      /**< Last line of wrapped text */
-linkedListElement_t* wrappedScript_actual = NULL;    /**< Actual line of wrapped text */
-linkedListElement_t** wrappedScript_it = NULL;       /**< Playlist iterator. Used to build wrappedScript. */
-linkedListElement_t* wrappedScript_it_prev = NULL;   /**< Playlist previous element. Used to build wrappedScript. */
-
-/**
- * Allocate memory for a new element of linked list.
- *
- * @param[in] aItem Linked list item to store.
- * @param[in] aPrev Previous linked list item.
- */
-linkedListElement_t* addElement (void* aItem, linkedListElement_t* aPrev)
-{
-    linkedListElement_t* linkedList = NULL;
-
-    linkedList = malloc (sizeof (linkedListElement_t));
-    if (linkedList)
-    {
-        linkedList->item = aItem;
-        linkedList->prev = aPrev;
-    }
-
-    return linkedList;
-}
-
-/**
- * @brief freeElement
- * Releases memory of a linked list's item and linked list element too.
- *
- * @param aLinkedList
- * @return
- */
-linkedListElement_t* freeElement (linkedListElement_t* aLinkedList)
-{
-    linkedListElement_t* next = NULL;
-
-    if (aLinkedList)
-    {
-        next = aLinkedList->next;
-        if (aLinkedList->item)
-        {
-            free (aLinkedList->item);
-        }
-        free (aLinkedList);
-    }
-
-    return next;
-}
-
-/**
- * @brief freeLinkedList
- * @param aFirstLinkedList
- */
-void freeLinkedList (linkedListElement_t* aFirstLinkedList)
-{
-    linkedListElement_t* linkedList = aFirstLinkedList;
-    bool_t end = FALSE;
-    bool_t first = TRUE;
-
-    while (linkedList && !end)
-    {
-        if (!first && linkedList == aFirstLinkedList)
-        {
-            end = TRUE;
-        }
-        linkedList = freeElement (linkedList);
-        first = FALSE;
-    }
-}
+linkedList_t wrappedScriptList = { 0 };
 
 /**
  * Set up default configuration and load if configuration file exists.
@@ -262,9 +187,13 @@ bool_t saveConfig (void)
 
 /**
  * @brief loadScript Load script from file.
+ *
+ * @param[in]  aScriptFilePath  Script to load.
+ * @param[out] aScriptBuffer    Target buffer.
+ *
  * @return TRUE: if script successfully loaded. FALSE: if error occured. Error text is printed to screen.
  */
-bool_t loadScript(const char * aScriptFilePath)
+bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
 {
     bool_t  ok = FALSE;
     FILE  * file;
@@ -273,11 +202,11 @@ bool_t loadScript(const char * aScriptFilePath)
 
     drawInfoScreen("Loading script...");
 
-    if (scriptBuffer)
+    if (*aScriptBuffer)
     {
         printf("Releasing memory... ");
-        free(scriptBuffer);
-        scriptBuffer = NULL;
+        free(*aScriptBuffer);
+        *aScriptBuffer = NULL;
         printf("Done\n");
     }
 
@@ -295,15 +224,15 @@ bool_t loadScript(const char * aScriptFilePath)
                 {
                     printf("Script size: %lu\n", fileSize);
                     printf("Allocating memory... ");
-                    scriptBuffer = malloc(fileSize + 1); // +1 end of string
-                    if (scriptBuffer)
+                    *aScriptBuffer = malloc(fileSize + 1); // +1 end of string
+                    if (*aScriptBuffer)
                     {
                         printf("Done.\n");
-                        readBytes = fread(scriptBuffer, 1, fileSize, file);
+                        readBytes = fread(*aScriptBuffer, 1, fileSize, file);
                         printf("%lu bytes were read\n", readBytes);
                         if (readBytes == fileSize)
                         {
-                            scriptBuffer[fileSize] = 0; // end of string
+                            (*aScriptBuffer)[fileSize] = 0; // end of string
                             drawInfoScreen("Script loaded.");
                             ok = TRUE;
                         }
@@ -352,41 +281,7 @@ bool_t loadScript(const char * aScriptFilePath)
     return ok;
 }
 
-bool_t addScriptElement(char * start_ptr, char * end_ptr)
-{
-    bool_t ok = TRUE;
-    size_t len;
-    len = end_ptr - start_ptr;
-    char * linkedListText = malloc(len);
-    if (linkedListText)
-    {
-        strncpy(linkedListText, start_ptr, end_ptr - start_ptr);
-        linkedListText[len] = 0; // end of string
-        printf("selected text: [%s]\n", linkedListText);
-
-        (*wrappedScript_it) = addElement (linkedListText, wrappedScript_it_prev);
-        if (*wrappedScript_it)
-        {
-            wrappedScript_last = (*wrappedScript_it);
-            wrappedScript_it_prev = *wrappedScript_it;
-            wrappedScript_it = &((*wrappedScript_it)->next);
-        }
-        else
-        {
-            printf("ERROR: cannot allocate memory for list element!\n");
-            ok = FALSE;
-        }
-    }
-    else
-    {
-        printf("ERROR: cannot allocate memory for text!\n");
-        ok = FALSE;
-    }
-
-    return ok;
-}
-
-bool_t wrapScript(uint16_t max_width_px)
+bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWrappedScriptList)
 {
     bool_t   ok = TRUE;
     uint32_t i;
@@ -398,27 +293,28 @@ bool_t wrapScript(uint16_t max_width_px)
     char     text[1024];
     size_t   len;
 
-    start_ptr = scriptBuffer;
+    start_ptr = aScriptBuffer;
     end_ptr = start_ptr;
     prev_end_ptr = start_ptr;
 
-    freeLinkedList( wrappedScript_first );
-    wrappedScript_it = &(wrappedScript_first);
+    freeLinkedList( aWrappedScriptList->first );
+    // Initialize iterator
+    aWrappedScriptList->it = &(aWrappedScriptList->first);
 
-    for (i = 0; scriptBuffer[i] && ok; i++)
+    for (i = 0; aScriptBuffer[i] && ok; i++)
     {
-        if (IS_WHITESPACE(scriptBuffer[i]))
+        if (IS_WHITESPACE(aScriptBuffer[i]))
         {
             // Search end of white spaces
-            for (; IS_WHITESPACE(scriptBuffer[i]); i++)
+            for (; IS_WHITESPACE(aScriptBuffer[i]); i++)
             {
                 // replace \n and \t with space
                 // TODO interpret new line and start a new line?
-                scriptBuffer[i] = ' ';
+                aScriptBuffer[i] = ' ';
             }
 
             prev_end_ptr = end_ptr;
-            end_ptr = &scriptBuffer[i];
+            end_ptr = &aScriptBuffer[i];
             len = (uintptr_t)end_ptr - (uintptr_t)start_ptr;
             if (len < sizeof(text) - 1) // -1 due to end of string
             {
@@ -463,9 +359,9 @@ bool_t wrapScript(uint16_t max_width_px)
                 if (!teleprompterRunning) return false; // FIXME debug
                 //----------------------------------------------------------------- FIXME debug
 #endif
-                if (width_px >= max_width_px)
+                if (width_px >= aMaxWidthPx)
                 {
-                    ok = addScriptElement(start_ptr, prev_end_ptr);
+                    ok = addScriptElement(start_ptr, prev_end_ptr, aWrappedScriptList);
                     start_ptr = prev_end_ptr;
                 }
             }
@@ -479,13 +375,13 @@ bool_t wrapScript(uint16_t max_width_px)
 
     if (ok)
     {
-        addScriptElement(start_ptr, &scriptBuffer[i]);
+        addScriptElement(start_ptr, &aScriptBuffer[i], aWrappedScriptList);
     }
     else
     {
         /* Error occurred: free linked list */
         // FIXME display some text?
-        freeLinkedList(wrappedScript_first);
+        freeLinkedList(aWrappedScriptList->first);
     }
 
     return ok;
@@ -650,9 +546,9 @@ void handleMainStateMachine (void)
             SDL_Flip(screen);
             break;
         case STATE_load_script:
-            if (loadScript(scriptFilePath))
+            if (loadScript(scriptFilePath, &scriptBuffer))
             {
-                if (wrapScript(VIDEO_SIZE_X_PX))
+                if (wrapScript(scriptBuffer, VIDEO_SIZE_X_PX, &wrappedScriptList))
                 {
                     /* Script successfully loaded, immediately show it */
                     main_state_machine = STATE_running;
@@ -863,6 +759,13 @@ void done (void)
         printf("Releasing memory... ");
         free(scriptBuffer);
         scriptBuffer = NULL;
+        printf("Done\n");
+    }
+
+    if (wrappedScriptList.first)
+    {
+        printf("Releasing linked list... ");
+        freeLinkedList(wrappedScriptList.first);
         printf("Done\n");
     }
 
