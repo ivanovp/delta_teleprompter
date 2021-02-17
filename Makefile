@@ -13,7 +13,7 @@ SOURCE    = .
 
 INCLUDE   = -I. -I/usr/include/SDL
 
-W_OPTS    = -Wall -Wextra -finline-functions -fomit-frame-pointer -fno-builtin -fno-exceptions
+W_OPTS    = -Wall -Wextra #-finline-functions -fomit-frame-pointer -fno-builtin -fno-exceptions
 CPP_OPTS  = -O0 $(INCLUDE) $(W_OPTS) -D_DEBUG -DDATA_DIR=\"$(DATA_DIR)\" -c -ggdb3
 CC_OPTS   = -O0 $(INCLUDE) $(W_OPTS) -D_DEBUG -DDATA_DIR=\"$(DATA_DIR)\" -c -ggdb3
 CC_OPTS_A = $(CC_OPTS) -D_ASSEMBLER_

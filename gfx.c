@@ -15,10 +15,16 @@
 
 #include <SDL/SDL.h>
 #include <SDL/SDL_image.h>
+#include <SDL/SDL_ttf.h>
 #include <SDL/SDL_gfxPrimitives.h>
 
 #include "common.h"
 #include "gfx.h"
+#include "linkedlist.h"
+
+extern TTF_Font *ttf_font;
+extern SDL_Color sdl_text_color;
+extern linkedList_t wrappedScriptList;
 
 SDL_Surface * loadImage(const char* filename)
 {
@@ -100,15 +106,57 @@ void printCommon (void)
 #endif
 }
 
+void drawScript(linkedList_t * aWrappedScriptList, TTF_Font *aTtfFont, SDL_Color * aSdlTextColor)
+{
+    linkedListElement_t * linkedListElement = aWrappedScriptList->actual;
+    char                * text = NULL;
+    SDL_Rect              sdl_rect;
+    SDL_Surface         * sdl_text;
+    int width_px;
+    int height_px;
+
+    sdl_rect.x = 0;
+    sdl_rect.y = 0;
+
+    printf("%s start\n", __FUNCTION__);
+    while (linkedListElement)
+    {
+        text = (char*)linkedListElement->item;
+        printf("[%s]\n", text);
+
+        sdl_text = TTF_RenderUTF8_Blended(aTtfFont, text, *aSdlTextColor);
+        if (sdl_text == NULL)
+        {
+            printf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
+            break;
+        }
+
+        sdl_rect.w = sdl_text->clip_rect.w;
+        sdl_rect.h = sdl_text->clip_rect.h;
+
+        // Apply the text to the display
+        if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
+        {
+            printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
+        }
+        sdl_rect.y += sdl_text->clip_rect.h;
+
+        SDL_FreeSurface(sdl_text);
+        linkedListElement = linkedListElement->next;
+    }
+    printf("%s end\n", __FUNCTION__);
+}
+
 void drawScreen (void)
 {
     // Restore background
     SDL_BlitSurface( background, NULL, screen, NULL );
 
-    printCommon ();
-    if (TELEPROMPTER_IS_PAUSED() || TELEPROMPTER_IS_FINISHED())
-    {
-    }
+//    printCommon ();
+//    if (TELEPROMPTER_IS_PAUSED() || TELEPROMPTER_IS_FINISHED())
+//    {
+//    }
+    drawScript(&wrappedScriptList, ttf_font, &sdl_text_color);
 
     SDL_Flip( screen );
 }

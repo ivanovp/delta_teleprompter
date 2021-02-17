@@ -90,12 +90,12 @@ bool_t addScriptElement(char * aStartPtr, char * aEndPtr, linkedList_t * aLinked
     bool_t ok = TRUE;
     size_t len;
     len = aEndPtr - aStartPtr;
-    char * linkedListText = malloc(len);
+    char * linkedListText = malloc(len + 1); // +1 due to end of string
     if (linkedListText)
     {
         strncpy(linkedListText, aStartPtr, aEndPtr - aStartPtr);
         linkedListText[len] = 0; // end of string
-        printf("selected text: [%s]\n", linkedListText);
+//        printf("selected text: [%s]\n", linkedListText);
 
         (*aLinkedList->it) = addElement (linkedListText, aLinkedList->it_prev);
         if (*aLinkedList->it)

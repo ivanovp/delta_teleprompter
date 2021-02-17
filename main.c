@@ -121,6 +121,7 @@ TTF_Font *ttf_font = NULL;
 char * scriptBuffer = NULL;
 SDL_Color sdl_text_color = {0xff, 0xff, 0xff, 0};
 linkedList_t wrappedScriptList = { 0 };
+uint32_t wrappedScriptHeightPx = 0;
 
 /**
  * Set up default configuration and load if configuration file exists.
@@ -281,7 +282,7 @@ bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
     return ok;
 }
 
-bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWrappedScriptList)
+bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWrappedScriptList, uint32_t * aWrappedScriptHeightPx)
 {
     bool_t   ok = TRUE;
     uint32_t i;
@@ -292,6 +293,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWr
     int      height_px;
     char     text[1024];
     size_t   len;
+    uint32_t wrapper_script_height_px = 0;
 
     start_ptr = aScriptBuffer;
     end_ptr = start_ptr;
@@ -322,6 +324,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWr
                 text[len] = 0; // end of string
 //                printf("text: [%s]\n", text);
                 TTF_SizeUTF8(ttf_font, text, &width_px, &height_px);
+                wrapper_script_height_px += height_px;
 //                printf("width_px: %i height_px: %i\n", width_px, height_px);
 
 #if 0
@@ -376,6 +379,8 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWr
     if (ok)
     {
         addScriptElement(start_ptr, &aScriptBuffer[i], aWrappedScriptList);
+        aWrappedScriptList->actual = aWrappedScriptList->first;
+        *aWrappedScriptHeightPx = wrapper_script_height_px;
     }
     else
     {
@@ -386,6 +391,20 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, linkedList_t * aWr
 
     return ok;
 }
+
+void printScript(linkedList_t * aWrappedScriptList)
+{
+    linkedListElement_t* linkedListElement = aWrappedScriptList->actual;
+
+    printf("%s start\n", __FUNCTION__);
+    while (linkedListElement)
+    {
+        printf("[%s]\n", (char*)linkedListElement->item);
+        linkedListElement = linkedListElement->next;
+    }
+    printf("%s end\n", __FUNCTION__);
+}
+
 
 /**
  * @brief init
@@ -548,8 +567,9 @@ void handleMainStateMachine (void)
         case STATE_load_script:
             if (loadScript(scriptFilePath, &scriptBuffer))
             {
-                if (wrapScript(scriptBuffer, VIDEO_SIZE_X_PX, &wrappedScriptList))
+                if (wrapScript(scriptBuffer, VIDEO_SIZE_X_PX, &wrappedScriptList, &wrappedScriptHeightPx))
                 {
+//                    printScript(&wrappedScriptList);
                     /* Script successfully loaded, immediately show it */
                     main_state_machine = STATE_running;
                 }
