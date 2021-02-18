@@ -403,6 +403,7 @@ void printScript(linkedList_t * aWrappedScriptList)
 bool_t init (void)
 {
     char path[256];
+    const SDL_VideoInfo * videoInfo;
 
     setlocale(LC_ALL, ""); // FIXME needed?
     srand(time(NULL));
@@ -418,6 +419,11 @@ bool_t init (void)
     mkdir(path, 0755);
 
     SDL_Init(SDL_INIT_EVERYTHING);
+
+    videoInfo = SDL_GetVideoInfo();
+
+    printf("Screen size: %i x %i\r\n", videoInfo->current_h, videoInfo->current_w);
+    printf("Video memory: %i KiB\r\n", videoInfo->video_mem);
 
     // Set up screen
     screen = SDL_SetVideoMode(VIDEO_SIZE_X_PX, VIDEO_SIZE_Y_PX, VIDEO_DEPTH_BIT, SDL_SWSURFACE
@@ -734,6 +740,7 @@ void run (void)
         key_task();
         handleMainStateMachine ();
         usleep( 1e3 );
+//        SDL_Delay( 1 );
     }
 }
 

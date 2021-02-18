@@ -26,7 +26,7 @@
  * @param[in] aItem Linked list item to store.
  * @param[in] aPrev Previous linked list item.
  */
-linkedListElement_t* addElement (void* aItem, linkedListElement_t* aPrev)
+linkedListElement_t* allocElement (void* aItem, linkedListElement_t* aPrev)
 {
     linkedListElement_t* linkedList = NULL;
 
@@ -85,6 +85,13 @@ void freeLinkedList (linkedListElement_t* aFirstLinkedList)
     }
 }
 
+/**
+ * @brief addScriptElement Allocate and add script text to linked list
+ *
+ * @param aText[in]         Text to add (it will be copied, so it can be released).
+ * @param aLinkedList[out]  Text will be added to this linked list.
+ * @return TRUE: if allocation succeeded.
+ */
 bool_t addScriptElement(char * aText, linkedList_t * aLinkedList)
 {
     bool_t ok = TRUE;
@@ -94,10 +101,8 @@ bool_t addScriptElement(char * aText, linkedList_t * aLinkedList)
     if (linkedListText)
     {
         strncpy(linkedListText, aText, len + 1);
-//        linkedListText[len] = CHR_EOS; // end of string
-//        printf("selected text: [%s]\n", linkedListText);
 
-        (*aLinkedList->it) = addElement (linkedListText, aLinkedList->it_prev);
+        (*aLinkedList->it) = allocElement (linkedListText, aLinkedList->it_prev);
         if (*aLinkedList->it)
         {
             aLinkedList->last = *(aLinkedList->it);
