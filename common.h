@@ -27,10 +27,11 @@
 #define TRUE    (1)
 #endif
 
+#define CHR_EOS                     '\0'    /* End of string */
 #define CHR_SPACE                   ' '
-#define CHR_CR                      '\r'
-#define CHR_LF                      '\n'
-#define CHR_TAB                     '\t'
+#define CHR_CR                      '\r'    /* Carriage return */
+#define CHR_LF                      '\n'    /* Line feed */
+#define CHR_TAB                     '\t'    /* Tabulator */
 #define IS_WHITESPACE(c)    ((c) == CHR_SPACE || (c) == CHR_CR || (c) == CHR_LF || (c) == CHR_TAB)
 
 #define BIT0    0x01u

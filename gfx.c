@@ -114,19 +114,13 @@ void drawScript(wrappedScript_t * aWrappedScript)
     TTF_Font            * ttfFont = aWrappedScript->ttf_font;
     SDL_Color             sdlTextColor = aWrappedScript->sdl_text_color;
     linkedListElement_t * linkedListElement = wrappedScriptList->actual;
-    Sint16 y = -(aWrappedScript->heightOffsetPx);
+    Sint16                y = -(aWrappedScript->heightOffsetPx);
 
     sdl_rect.x = 0;
     sdl_rect.y = y;
-    aWrappedScript->heightOffsetPx++;
-    if (aWrappedScript->heightOffsetPx == aWrappedScript->wrappedScriptHeightPx)
-    {
-        /* Advance to next line */
-        aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.actual->next;
-        aWrappedScript->heightOffsetPx = 0;
-    }
 
 //    printf("%s start\n", __FUNCTION__);
+    /* Display lines of script until reaching end of script or end of display */
     while (linkedListElement && sdl_rect.y < VIDEO_SIZE_Y_PX)
     {
         text = (char*)linkedListElement->item;

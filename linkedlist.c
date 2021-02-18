@@ -94,7 +94,7 @@ bool_t addScriptElement(char * aStartPtr, char * aEndPtr, linkedList_t * aLinked
     if (linkedListText)
     {
         strncpy(linkedListText, aStartPtr, aEndPtr - aStartPtr);
-        linkedListText[len] = 0; // end of string
+        linkedListText[len] = CHR_EOS; // end of string
 //        printf("selected text: [%s]\n", linkedListText);
 
         (*aLinkedList->it) = addElement (linkedListText, aLinkedList->it_prev);

@@ -237,7 +237,7 @@ bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
                         printf("%lu bytes were read\n", readBytes);
                         if (readBytes == fileSize)
                         {
-                            (*aScriptBuffer)[fileSize] = 0; // end of string
+                            (*aScriptBuffer)[fileSize] = CHR_EOS; // end of string
                             drawInfoScreen("Script loaded.");
                             ok = TRUE;
                         }
@@ -324,7 +324,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * 
             if (len < sizeof(text) - 1) // -1 due to end of string
             {
                 strncpy(text, start_ptr, end_ptr - start_ptr);
-                text[len] = 0; // end of string
+                text[len] = CHR_EOS; // end of string
 //                printf("text: [%s]\n", text);
                 TTF_SizeUTF8(aWrappedScript->ttf_font, text, &width_px, &height_px);
 //                printf("width_px: %i height_px: %i\n", width_px, height_px);
@@ -453,7 +453,10 @@ bool_t init (void)
     }
 
     // Load a ttf_font
-    wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", 24);
+    wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf",
+//                                          24
+                                          36
+                                          );
     if (wrappedScript.ttf_font == NULL)
     {
         printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
@@ -461,38 +464,6 @@ bool_t init (void)
         SDL_Quit();
         exit(1);
     }
-
-#if 0
-    // Write text to surface
-    SDL_Surface *sdl_text;
-    sdl_text = TTF_RenderText_Blended(ttf_font,
-                                "A journey of a thousand miles begins with a single step.",
-                                sdl_text_color);
-
-    if (sdl_text == NULL)
-    {
-        printf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
-        TTF_Quit();
-        SDL_Quit();
-        exit(1);
-    }
-
-    SDL_Rect sdl_rect;
-    sdl_rect.x = 10;
-    sdl_rect.y = 450;
-    sdl_rect.w = sdl_text->clip_rect.w;
-    sdl_rect.h = sdl_text->clip_rect.h;
-
-    // Apply the text to the display
-    if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
-    {
-        printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
-    }
-
-    //Update Screen
-    SDL_Flip( screen );
-    SDL_Delay(2000);
-#endif
 
     keys[KEY_UP].repeatTick = NORMAL_REPEAT_TICK;
     keys[KEY_DOWN].repeatTick = FAST_REPEAT_TICK;
@@ -539,6 +510,17 @@ void handleMovement (void)
             ticks = OS_TICKS_PER_SEC / 10;
         }
         teleprompterTimer = SDL_GetTicks() + ticks;
+    }
+}
+
+void scrollScript(wrappedScript_t * aWrappedScript)
+{
+    aWrappedScript->heightOffsetPx++;
+    if (aWrappedScript->heightOffsetPx == aWrappedScript->wrappedScriptHeightPx)
+    {
+        /* Advance to next line */
+        aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.actual->next;
+        aWrappedScript->heightOffsetPx = 0;
     }
 }
 
@@ -601,6 +583,7 @@ void handleMainStateMachine (void)
                 main_state_machine = STATE_paused;
             }
             drawScreen ();
+            scrollScript(&wrappedScript);
             break;
         case STATE_paused:
             if (enterPressed && enterChanged)
@@ -764,7 +747,7 @@ void run (void)
     {
         key_task();
         handleMainStateMachine ();
-        usleep( 10e3 );
+        usleep( 1e3 );
     }
 }
 
