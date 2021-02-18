@@ -286,25 +286,40 @@ bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
     return ok;
 }
 
+/**
+ * @brief wrapScript Wrap script to the specified width.
+ *
+ * @param aScriptBuffer[in]     Input text to wrap.
+ * @param aMaxWidthPx[in]       Maximum width of text in pixels.
+ * @param aWrappedScript[out]   Wrapped text.
+ * @return
+ */
 bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * aWrappedScript)
 {
     bool_t   ok = TRUE;
     uint32_t i;
-    char   * start_ptr;
-    char   * end_ptr;
-    char   * prev_end_ptr;
-    int      width_px;
-    int      height_px;
-    char     text[1024];
+    char   * start_ptr;         /* Start of text */
+    char   * end_ptr;           /* End of text */
+    char   * prev_end_ptr;      /* Previous end of text (to detect overflow of line) */
+    int      text_width_px;
+    int      text_height_px;
+    char     text[1024] = " "; /* Empty string by default, later will be filled */
     size_t   len;
-
-    start_ptr = aScriptBuffer;
-    end_ptr = start_ptr;
-    prev_end_ptr = start_ptr;
 
     freeLinkedList(aWrappedScript->wrappedScriptList.first);
     // Initialize iterator
     aWrappedScript->wrappedScriptList.it = &(aWrappedScript->wrappedScriptList.first);
+
+    /* Add empty lines, so the scrolling will start with empty screen */
+    TTF_SizeUTF8(aWrappedScript->ttf_font, text, &text_width_px, &text_height_px);
+    for (i = 0u; i < ((uint32_t)VIDEO_SIZE_Y_PX / text_height_px) && ok; i++)
+    {
+        ok = addScriptElement(text, &(aWrappedScript->wrappedScriptList));
+    }
+
+    start_ptr = aScriptBuffer;
+    end_ptr = start_ptr;
+    prev_end_ptr = start_ptr;
 
     for (i = 0; aScriptBuffer[i] && ok; i++)
     {
@@ -323,50 +338,18 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * 
             len = (uintptr_t)end_ptr - (uintptr_t)start_ptr;
             if (len < sizeof(text) - 1) // -1 due to end of string
             {
-                strncpy(text, start_ptr, end_ptr - start_ptr);
+                strncpy(text, start_ptr, len);
                 text[len] = CHR_EOS; // end of string
 //                printf("text: [%s]\n", text);
-                TTF_SizeUTF8(aWrappedScript->ttf_font, text, &width_px, &height_px);
+                TTF_SizeUTF8(aWrappedScript->ttf_font, text, &text_width_px, &text_height_px);
 //                printf("width_px: %i height_px: %i\n", width_px, height_px);
 
-#if 0
-                //----------------------------------------------------------------- FIXME debug
-                //Apply background to screen
-                SDL_BlitSurface( background, NULL, screen, NULL );
-
-                SDL_Surface *sdl_text;
-                sdl_text = TTF_RenderUTF8_Blended(ttf_font, text, sdl_text_color);
-                if (sdl_text == NULL)
+                if (text_width_px >= aMaxWidthPx)
                 {
-                    printf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
-                    TTF_Quit();
-                    SDL_Quit();
-                    exit(1);
-                }
-
-                SDL_Rect sdl_rect;
-                sdl_rect.x = 0;
-                sdl_rect.y = VIDEO_SIZE_Y_PX / 2;
-                sdl_rect.w = sdl_text->clip_rect.w;
-                sdl_rect.h = sdl_text->clip_rect.h;
-
-                // Apply the text to the display
-                if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
-                {
-                    printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
-                }
-
-                //Update Screen
-                SDL_Flip( screen );
-                SDL_Delay(200);
-
-                key_task(); // FIXME debug
-                if (!teleprompterRunning) return false; // FIXME debug
-                //----------------------------------------------------------------- FIXME debug
-#endif
-                if (width_px >= aMaxWidthPx)
-                {
-                    ok = addScriptElement(start_ptr, prev_end_ptr, &(aWrappedScript->wrappedScriptList));
+                    len = (uintptr_t)prev_end_ptr - (uintptr_t)start_ptr;
+                    strncpy(text, start_ptr, len);
+                    text[len] = CHR_EOS; // end of string
+                    ok = addScriptElement(text, &(aWrappedScript->wrappedScriptList));
                     start_ptr = prev_end_ptr;
                 }
             }
@@ -380,9 +363,12 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * 
 
     if (ok)
     {
-        addScriptElement(start_ptr, &aScriptBuffer[i], &(aWrappedScript->wrappedScriptList));
+        len = (uintptr_t)&aScriptBuffer[i] - (uintptr_t)start_ptr;
+        strncpy(text, start_ptr, len);
+        text[len] = CHR_EOS; // end of string
+        addScriptElement(text, &(aWrappedScript->wrappedScriptList));
         aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.first;
-        aWrappedScript->wrappedScriptHeightPx = height_px;
+        aWrappedScript->wrappedScriptHeightPx = text_height_px;
     }
     else
     {

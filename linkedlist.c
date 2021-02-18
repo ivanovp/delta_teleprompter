@@ -85,16 +85,16 @@ void freeLinkedList (linkedListElement_t* aFirstLinkedList)
     }
 }
 
-bool_t addScriptElement(char * aStartPtr, char * aEndPtr, linkedList_t * aLinkedList)
+bool_t addScriptElement(char * aText, linkedList_t * aLinkedList)
 {
     bool_t ok = TRUE;
-    size_t len;
-    len = aEndPtr - aStartPtr;
+    size_t len = strlen(aText);
     char * linkedListText = malloc(len + 1); // +1 due to end of string
+
     if (linkedListText)
     {
-        strncpy(linkedListText, aStartPtr, aEndPtr - aStartPtr);
-        linkedListText[len] = CHR_EOS; // end of string
+        strncpy(linkedListText, aText, len + 1);
+//        linkedListText[len] = CHR_EOS; // end of string
 //        printf("selected text: [%s]\n", linkedListText);
 
         (*aLinkedList->it) = addElement (linkedListText, aLinkedList->it_prev);

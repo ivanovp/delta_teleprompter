@@ -34,7 +34,7 @@ typedef struct
 linkedListElement_t* addElement (void* aItem, linkedListElement_t* aPrev);
 linkedListElement_t* freeElement (linkedListElement_t* aLinkedList);
 void freeLinkedList (linkedListElement_t* aFirstLinkedList);
-bool_t addScriptElement(char * aStartPtr, char * aEndPtr, linkedList_t * aLinkedList);
+bool_t addScriptElement(char * aText, linkedList_t * aLinkedList);
 
 #endif /* INCLUDE_COMMON_H */
 
