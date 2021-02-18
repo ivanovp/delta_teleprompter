@@ -297,7 +297,6 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * 
     int      height_px;
     char     text[1024];
     size_t   len;
-    uint32_t wrapper_script_height_px = 0;
 
     start_ptr = aScriptBuffer;
     end_ptr = start_ptr;
@@ -328,7 +327,6 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * 
                 text[len] = 0; // end of string
 //                printf("text: [%s]\n", text);
                 TTF_SizeUTF8(aWrappedScript->ttf_font, text, &width_px, &height_px);
-                wrapper_script_height_px += height_px;
 //                printf("width_px: %i height_px: %i\n", width_px, height_px);
 
 #if 0
@@ -384,7 +382,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * 
     {
         addScriptElement(start_ptr, &aScriptBuffer[i], &(aWrappedScript->wrappedScriptList));
         aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.first;
-        aWrappedScript->wrappedScriptHeightPx = wrapper_script_height_px;
+        aWrappedScript->wrappedScriptHeightPx = height_px;
     }
     else
     {

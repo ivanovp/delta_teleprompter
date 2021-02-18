@@ -105,25 +105,34 @@ void printCommon (void)
 #endif
 }
 
-void drawScript(linkedList_t * aWrappedScriptList, TTF_Font *aTtfFont, SDL_Color * aSdlTextColor)
+void drawScript(wrappedScript_t * aWrappedScript)
 {
-    linkedListElement_t * linkedListElement = aWrappedScriptList->actual;
     char                * text = NULL;
     SDL_Rect              sdl_rect;
     SDL_Surface         * sdl_text;
-    int width_px;
-    int height_px;
+    linkedList_t        * wrappedScriptList = &( aWrappedScript->wrappedScriptList );
+    TTF_Font            * ttfFont = aWrappedScript->ttf_font;
+    SDL_Color             sdlTextColor = aWrappedScript->sdl_text_color;
+    linkedListElement_t * linkedListElement = wrappedScriptList->actual;
+    Sint16 y = -(aWrappedScript->heightOffsetPx);
 
     sdl_rect.x = 0;
-    sdl_rect.y = 0;
+    sdl_rect.y = y;
+    aWrappedScript->heightOffsetPx++;
+    if (aWrappedScript->heightOffsetPx == aWrappedScript->wrappedScriptHeightPx)
+    {
+        /* Advance to next line */
+        aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.actual->next;
+        aWrappedScript->heightOffsetPx = 0;
+    }
 
-    printf("%s start\n", __FUNCTION__);
-    while (linkedListElement)
+//    printf("%s start\n", __FUNCTION__);
+    while (linkedListElement && sdl_rect.y < VIDEO_SIZE_Y_PX)
     {
         text = (char*)linkedListElement->item;
-        printf("[%s]\n", text);
+//        printf("[%s]\n", text);
 
-        sdl_text = TTF_RenderUTF8_Blended(aTtfFont, text, *aSdlTextColor);
+        sdl_text = TTF_RenderUTF8_Blended(ttfFont, text, sdlTextColor);
         if (sdl_text == NULL)
         {
             printf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
@@ -138,12 +147,15 @@ void drawScript(linkedList_t * aWrappedScriptList, TTF_Font *aTtfFont, SDL_Color
         {
             printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
         }
-        sdl_rect.y += sdl_text->clip_rect.h;
 
         SDL_FreeSurface(sdl_text);
+
+        /* Advance to next line of script */
+        y += aWrappedScript->wrappedScriptHeightPx;
+        sdl_rect.y = y;
         linkedListElement = linkedListElement->next;
     }
-    printf("%s end\n", __FUNCTION__);
+//    printf("%s end\n", __FUNCTION__);
 }
 
 void drawScreen (void)
@@ -155,7 +167,7 @@ void drawScreen (void)
 //    if (TELEPROMPTER_IS_PAUSED() || TELEPROMPTER_IS_FINISHED())
 //    {
 //    }
-    drawScript(&wrappedScript.wrappedScriptList, wrappedScript.ttf_font, &wrappedScript.sdl_text_color);
+    drawScript(&wrappedScript);
 
     SDL_Flip( screen );
 }

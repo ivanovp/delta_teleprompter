@@ -21,10 +21,11 @@
 
 typedef struct
 {
-    TTF_Font *ttf_font;
-    SDL_Color sdl_text_color;
-    linkedList_t wrappedScriptList;
-    uint32_t wrappedScriptHeightPx;
+    TTF_Font        *ttf_font;
+    SDL_Color       sdl_text_color;
+    linkedList_t    wrappedScriptList;              /* Linked list of wrapped lines */
+    uint32_t        wrappedScriptHeightPx;          /* Height of one line */
+    uint32_t        heightOffsetPx;                 /* Offset inside on line. Range: 0 .. wrappedScriptHeightPx - 1 */
 } wrappedScript_t;
 
 #endif /* INCLUDE_SCRIPT_H */
