@@ -86,9 +86,10 @@ void printCommon (void)
     }
     else if (TELEPROMPTER_IS_PAUSED())
     {
-        gfx_font_print(TEXT_X_0, TEXT_YN(8), "** PAUSED **");
-        snprintf (s, sizeof (s), "Teleprompter v%i.%i.%i", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
-        gfx_font_print(TEXT_X_0, TEXT_Y(11), s);
+        gfx_font_print(TEXT_X(0), TEXT_Y(0), "** PAUSED **");
+        snprintf (s, sizeof (s), "Delta Teleprompter v%i.%i.%i", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
+        gfx_font_print(TEXT_X(0), TEXT_Y(1), s);
+        gfx_font_print(TEXT_X(0), TEXT_Y(2), "Copyright (C) Peter Ivanov <ivanovp@gmail.com>, 2021");
     }
     else
     {
@@ -114,6 +115,8 @@ void drawScript(wrappedScript_t * aWrappedScript)
     TTF_Font            * ttfFont = aWrappedScript->ttf_font;
     SDL_Color             sdlTextColor = aWrappedScript->sdl_text_color;
     linkedListElement_t * linkedListElement = wrappedScriptList->actual;
+    config_t            * config = aWrappedScript->config;
+    Sint16                y_hide_px = ((float)config->video_size_y_px * 100.0f / ( 100.0f - config->text_height_percent ) ) / 2;
     Sint16                y = -(aWrappedScript->heightOffsetPx);
 
     sdl_rect.x = 0;
@@ -121,7 +124,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
 
 //    printf("%s start\n", __FUNCTION__);
     /* Display lines of script until reaching end of script or end of display */
-    while (linkedListElement && sdl_rect.y < VIDEO_SIZE_Y_PX)
+    while (linkedListElement && sdl_rect.y < config->video_size_y_px)
     {
         text = (char*)linkedListElement->item;
 //        printf("[%s]\n", text);
@@ -149,6 +152,19 @@ void drawScript(wrappedScript_t * aWrappedScript)
         sdl_rect.y = y;
         linkedListElement = linkedListElement->next;
     }
+#if 0
+    sdl_rect.x = 0;
+    sdl_rect.y = 0;
+    sdl_rect.w = config->video_size_x_px;
+    sdl_rect.h = y_hide_px;
+    SDL_FillRect(screen, &sdl_rect, config->background_color);
+
+    sdl_rect.x = 0;
+    sdl_rect.y = config->video_size_y_px - y_hide_px - 1;
+    sdl_rect.w = config->video_size_x_px;
+    sdl_rect.h = y_hide_px;
+    SDL_FillRect(screen, &sdl_rect, config->background_color);
+#endif
 //    printf("%s end\n", __FUNCTION__);
 }
 
@@ -157,10 +173,7 @@ void drawScreen (void)
     // Restore background
     SDL_BlitSurface( background, NULL, screen, NULL );
 
-//    printCommon ();
-//    if (TELEPROMPTER_IS_PAUSED() || TELEPROMPTER_IS_FINISHED())
-//    {
-//    }
+    printCommon ();
     drawScript(&wrappedScript);
 
     SDL_Flip( screen );

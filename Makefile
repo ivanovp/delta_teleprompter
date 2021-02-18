@@ -36,12 +36,14 @@ OBJ     = $(OBJ_CPP) $(OBJ_C) $(OBJ_S)
 DEP     = $(patsubst %.o, %.d, $(OBJ))
 BMP     = $(foreach dir, $(SOURCE), $(wildcard $(dir)/gfx/*.bmp))
 TGA     = $(patsubst %.bmp, %.tga, $(BMP))
+#TTF     = $(foreach dir, $(SOURCE), $(wildcard $(dir)/*.ttf))
+#TTF_C   = $(patsubst %.ttf, %.c, $(TTF))
 
 # Compile rules.
 
 .PHONY : all
 
-all : $(APP_NAME) $(TGA)
+all : $(APP_NAME) $(TGA) #$(TTF_C)
 
 $(APP_NAME) : $(OBJ)
 	$(LD) $(OBJ) $(LD_OPTS)
@@ -61,6 +63,9 @@ $(OBJ_S) : %.o : %.S
 $(TGA) : %.tga : %.bmp
 	convert $< $@
 
+#$(TTF_C) : %.ttf : %.c
+#	./bin2c -i $< -o $@
+
 -include $(DEP)
 
 # Clean rules
@@ -71,7 +76,7 @@ clean :
 	rm -f $(OBJ) *.d $(APP_NAME)
 
 INSTALL_DIR = delta_teleprompter_v101
-INSTALL_FILES = README.md LICENSE $(APP_NAME) $(TGA) *.mod gfx/font*.tga
+INSTALL_FILES = README.md LICENSE $(APP_NAME) $(TGA)
 
 .PHONY: install
 install: $(APP_NAME)

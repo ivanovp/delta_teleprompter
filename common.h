@@ -67,8 +67,17 @@ typedef enum
 
 typedef struct
 {
-    uint8_t version;        /* To prevent loading invalid configuration */
-    char script_file_path[FSYS_FILENAME_MAX];
+    uint8_t     version;        /* To prevent loading invalid configuration */
+    char        script_file_path[FSYS_FILENAME_MAX];
+    char        ttf_file_path[FSYS_FILENAME_MAX];
+    uint16_t    ttf_size;
+    uint16_t    text_width_percent;
+    uint16_t    text_height_percent;
+    uint16_t    video_size_x_px;
+    uint16_t    video_size_y_px;
+    uint8_t     video_depth_bit;
+    uint32_t    background_color;
+    uint32_t    text_color;
 } config_t;
 
 /* Teleprompter related */

@@ -1,6 +1,6 @@
 /**
  * @file        main.c
- * @brief       Sometris main
+ * @brief       Delta Teleprompter main
  * @author      Copyright (C) Peter Ivanov, 2013, 2014
  *
  * Created      2013-12-30 11:48:53
@@ -31,6 +31,7 @@
 #include "gfx.h"
 #include "linkedlist.h"
 #include "script.h"
+#include "dejavusans_ttf.h"
 
 #define CONFIG_DIR                  "/.delta_teleprompter"
 #define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
@@ -99,7 +100,16 @@ const char *homeDir;
 config_t config =
 {
     .version = 1,
-    .script_file_path = { 0 }
+    .script_file_path = { 0 },
+    .ttf_file_path = "",
+    .ttf_size = 36,
+    .text_width_percent = 90,
+    .text_height_percent = 90,
+    .video_size_x_px = 1024,
+    .video_size_y_px = 768,
+    .video_depth_bit = 16,
+    .background_color = DEFAULT_BG_COLOR,
+    .text_color = DEFAULT_TEXT_COLOR,
 };
 
 /* Teleprompter related */
@@ -124,7 +134,8 @@ wrappedScript_t wrappedScript =
     .ttf_font = NULL,
     .sdl_text_color = {0xff, 0xff, 0xff, 0},
     .wrappedScriptList = { 0 },
-    .wrappedScriptHeightPx = 0
+    .wrappedScriptHeightPx = 0,
+    .config = &config,
 };
 
 /**
@@ -294,7 +305,7 @@ bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
  * @param aWrappedScript[out]   Wrapped text.
  * @return
  */
-bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * aWrappedScript)
+bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeightPx, wrappedScript_t * aWrappedScript)
 {
     bool_t   ok = TRUE;
     uint32_t i;
@@ -312,7 +323,8 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * 
 
     /* Add empty lines, so the scrolling will start with empty screen */
     TTF_SizeUTF8(aWrappedScript->ttf_font, text, &text_width_px, &text_height_px);
-    for (i = 0u; i < ((uint32_t)VIDEO_SIZE_Y_PX / text_height_px) && ok; i++)
+    aWrappedScript->linePerScreen = aMaxHeightPx / text_height_px;
+    for (i = 0u; i < aWrappedScript->linePerScreen && ok; i++)
     {
         ok = addScriptElement(text, &(aWrappedScript->wrappedScriptList));
     }
@@ -342,7 +354,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, wrappedScript_t * 
                 text[len] = CHR_EOS; // end of string
 //                printf("text: [%s]\n", text);
                 TTF_SizeUTF8(aWrappedScript->ttf_font, text, &text_width_px, &text_height_px);
-//                printf("width_px: %i height_px: %i\n", width_px, height_px);
+//                printf("width_px: %i height_px: %i\n", text_width_px, text_height_px);
 
                 if (text_width_px >= aMaxWidthPx)
                 {
@@ -422,16 +434,20 @@ bool_t init (void)
 
     videoInfo = SDL_GetVideoInfo();
 
-    printf("Screen size: %i x %i\r\n", videoInfo->current_h, videoInfo->current_w);
+    printf("Actual screen size: %i x %i\r\n", videoInfo->current_w, videoInfo->current_h);
     printf("Video memory: %i KiB\r\n", videoInfo->video_mem);
 
+    printf("Requested screen size: %i x %i x %i\r\n", config.video_size_x_px, config.video_size_y_px, config.video_depth_bit);
+    printf("Background color: 0x%08X\r\n", config.background_color);
+    printf("Text color:       0x%08X\r\n", config.text_color);
+
     // Set up screen
-    screen = SDL_SetVideoMode(VIDEO_SIZE_X_PX, VIDEO_SIZE_Y_PX, VIDEO_DEPTH_BIT, SDL_SWSURFACE
+    screen = SDL_SetVideoMode(config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, SDL_SWSURFACE
 //                              | SDL_FULLSCREEN
                               );
 
     // Create background image
-    background = SDL_CreateRGBSurface(SDL_SWSURFACE, VIDEO_SIZE_X_PX, VIDEO_SIZE_Y_PX, VIDEO_DEPTH_BIT, 0, 0, 0, 0);
+    background = SDL_CreateRGBSurface(SDL_SWSURFACE, config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, 0, 0, 0, 0);
 
     //Apply image to screen
     SDL_BlitSurface( background, NULL, screen, NULL );
@@ -444,11 +460,17 @@ bool_t init (void)
         exit(1);
     }
 
-    // Load a ttf_font
-    wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf",
-//                                          24
-                                          36
-                                          );
+    // Load a TrueType font
+#if 0
+    wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", 36);
+    if (wrappedScript.ttf_font == NULL)
+    {
+        wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/trutype/dejavu/DejaVuSans.ttf", 36);
+    }
+#endif
+    // Load TrueType font which is embedded into this software
+    SDL_RWops* rwops = SDL_RWFromConstMem(dejavusans_ttf, sizeof(dejavusans_ttf));
+    wrappedScript.ttf_font = TTF_OpenFontRW(rwops, 1, config.ttf_size);
     if (wrappedScript.ttf_font == NULL)
     {
         printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
@@ -505,14 +527,73 @@ void handleMovement (void)
     }
 }
 
-void scrollScript(wrappedScript_t * aWrappedScript)
+/**
+ * @brief scrollScriptUpPx Scroll text up by one pixel.
+ *
+ * @param aWrappedScript[in] Script to be scrolled.
+ */
+void scrollScriptUpPx(wrappedScript_t * aWrappedScript)
 {
     aWrappedScript->heightOffsetPx++;
-    if (aWrappedScript->heightOffsetPx == aWrappedScript->wrappedScriptHeightPx)
+    if (aWrappedScript->heightOffsetPx == aWrappedScript->wrappedScriptHeightPx
+            && aWrappedScript->wrappedScriptList.actual)
     {
-        /* Advance to next line */
-        aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.actual->next;
-        aWrappedScript->heightOffsetPx = 0;
+        if (aWrappedScript->wrappedScriptList.actual->next)
+        {
+            /* Advance to next line */
+            aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.actual->next;
+            aWrappedScript->heightOffsetPx = 0;
+            aWrappedScript->isEnd = FALSE;
+        }
+        else
+        {
+            aWrappedScript->isEnd = TRUE;
+        }
+    }
+}
+
+/**
+ * @brief scrollScriptUp Scroll text up by specified count of lines.
+ *
+ * @param aWrappedScript[in]    Script to be scrolled.
+ * @param lineCount[in]         Line count to scroll.
+ */
+void scrollScriptUp(wrappedScript_t * aWrappedScript, int lineCount)
+{
+    while (lineCount > 0)
+    {
+        if (aWrappedScript->wrappedScriptList.actual)
+        {
+            if (aWrappedScript->wrappedScriptList.actual->next)
+            {
+                aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.actual->next;
+                aWrappedScript->isEnd = FALSE;
+            }
+            else
+            {
+                aWrappedScript->isEnd = TRUE;
+            }
+        }
+        lineCount--;
+    }
+}
+
+/**
+ * @brief scrollScriptDown Scroll text down by specified count of lines.
+ *
+ * @param aWrappedScript[in]    Script to be scrolled.
+ * @param lineCount[in]         Line count to scroll.
+ */
+void scrollScriptDown(wrappedScript_t * aWrappedScript, int lineCount)
+{
+    while (lineCount > 0)
+    {
+        if (aWrappedScript->wrappedScriptList.actual
+                && aWrappedScript->wrappedScriptList.actual->prev)
+        {
+            aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.actual->prev;
+        }
+        lineCount--;
     }
 }
 
@@ -533,7 +614,7 @@ void handleMainStateMachine (void)
                 main_state_machine = STATE_load_script;
             }
             SDL_BlitSurface(background, NULL, screen, NULL);
-            uint16_t y_center = VIDEO_SIZE_Y_PX / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(info) / sizeof(info[0]) / 2);
+            uint16_t y_center = config.video_size_y_px / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(info) / sizeof(info[0]) / 2);
             for (i = 0; i < sizeof(info) / sizeof(info[0]); i++)
             {
                 gfx_font_print_center(TEXT_Y(y_center + i), (char*) info[i]);
@@ -543,7 +624,12 @@ void handleMainStateMachine (void)
         case STATE_load_script:
             if (loadScript(scriptFilePath, &scriptBuffer))
             {
-                if (wrapScript(scriptBuffer, VIDEO_SIZE_X_PX, &wrappedScript))
+                if (wrapScript(scriptBuffer,
+                               config.video_size_x_px,
+                               config.video_size_y_px,
+//                               (float)config.video_size_x_px * 100.0f / config.text_width_percent,
+//                               (float)config.video_size_y_px * 100.0f / config.text_height_percent,
+                               &wrappedScript))
                 {
 //                    printScript(&wrappedScriptList);
                     /* Script successfully loaded, immediately show it */
@@ -574,15 +660,43 @@ void handleMainStateMachine (void)
             {
                 main_state_machine = STATE_paused;
             }
+            if (upPressed && upChanged)
+            {
+                /* Scroll script up */
+                scrollScriptUp(&wrappedScript, 1);
+            }
+            else if (downPressed && downChanged)
+            {
+                /* Scroll script down */
+                scrollScriptDown(&wrappedScript, 1);
+            }
             drawScreen ();
-            scrollScript(&wrappedScript);
+            scrollScriptUpPx(&wrappedScript);
+            if (wrappedScript.isEnd)
+            {
+                main_state_machine = STATE_end;
+            }
             break;
         case STATE_paused:
             if (enterPressed && enterChanged)
             {
                 main_state_machine = STATE_running;
             }
+            if (upPressed && upChanged)
+            {
+                /* Scroll script up */
+                scrollScriptUp(&wrappedScript, 1);
+            }
+            else if (downPressed && downChanged)
+            {
+                /* Scroll script down */
+                scrollScriptDown(&wrappedScript, 1);
+            }
             drawScreen ();
+            if (wrappedScript.isEnd)
+            {
+                main_state_machine = STATE_end;
+            }
             break;
         case STATE_end:
             if (enterPressed && enterChanged)
@@ -771,8 +885,11 @@ void done (void)
 
     //Free the loaded image
     SDL_FreeSurface(background);
+    SDL_FreeSurface(screen);
 
-    //Quit SDL
+    // Quit TTF
+    TTF_Quit();
+    // Quit SDL
     SDL_Quit();
 }
 

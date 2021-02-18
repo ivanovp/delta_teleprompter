@@ -23,9 +23,12 @@ typedef struct
 {
     TTF_Font        *ttf_font;
     SDL_Color       sdl_text_color;
-    linkedList_t    wrappedScriptList;              /* Linked list of wrapped lines */
-    uint16_t        wrappedScriptHeightPx;          /* Height of one line */
-    uint16_t        heightOffsetPx;                 /* Offset inside on line. Range: 0 .. wrappedScriptHeightPx - 1 */
+    linkedList_t    wrappedScriptList;      /* Linked list of wrapped lines */
+    uint16_t        wrappedScriptHeightPx;  /* Height of one line */
+    uint16_t        heightOffsetPx;         /* Offset inside on line. Range: 0 .. wrappedScriptHeightPx - 1 */
+    uint16_t        linePerScreen;          /* Count of lines on screen */
+    bool_t          isEnd;                  /* TRUE: End of script reached */
+    config_t      * config;                 /* Actual configuration */
 } wrappedScript_t;
 
 #endif /* INCLUDE_SCRIPT_H */

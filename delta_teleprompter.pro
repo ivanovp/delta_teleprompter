@@ -10,5 +10,6 @@ SOURCES += ./gfx.c \
 HEADERS += ./common.h \
 ./linkedlist.h \
 ./script.h \
-./gfx.h
+./gfx.h \
+./dejavusans_ttf.h
 
