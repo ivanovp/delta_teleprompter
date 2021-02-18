@@ -317,6 +317,9 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
     char     text[1024] = " "; /* Empty string by default, later will be filled */
     size_t   len;
 
+    aWrappedScript->maxWidthPx = aMaxWidthPx;
+    aWrappedScript->maxHeightPx = aMaxHeightPx;
+
     freeLinkedList(aWrappedScript->wrappedScriptList.first);
     // Initialize iterator
     aWrappedScript->wrappedScriptList.it = &(aWrappedScript->wrappedScriptList.first);
@@ -625,10 +628,8 @@ void handleMainStateMachine (void)
             if (loadScript(scriptFilePath, &scriptBuffer))
             {
                 if (wrapScript(scriptBuffer,
-                               config.video_size_x_px,
-                               config.video_size_y_px,
-//                               (float)config.video_size_x_px * 100.0f / config.text_width_percent,
-//                               (float)config.video_size_y_px * 100.0f / config.text_height_percent,
+                               (float)config.video_size_x_px * config.text_width_percent / 100.0f,
+                               (float)config.video_size_y_px * config.text_height_percent / 100.0f,
                                &wrappedScript))
                 {
 //                    printScript(&wrappedScriptList);

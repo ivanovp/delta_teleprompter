@@ -116,10 +116,10 @@ void drawScript(wrappedScript_t * aWrappedScript)
     SDL_Color             sdlTextColor = aWrappedScript->sdl_text_color;
     linkedListElement_t * linkedListElement = wrappedScriptList->actual;
     config_t            * config = aWrappedScript->config;
-    Sint16                y_hide_px = ((float)config->video_size_y_px * 100.0f / ( 100.0f - config->text_height_percent ) ) / 2;
+    Sint16                y_hide_px = (config->video_size_y_px - aWrappedScript->maxHeightPx) / 2;
     Sint16                y = -(aWrappedScript->heightOffsetPx);
 
-    sdl_rect.x = 0;
+    sdl_rect.x = (config->video_size_x_px - aWrappedScript->maxWidthPx) / 2;
     sdl_rect.y = y;
 
 //    printf("%s start\n", __FUNCTION__);
@@ -152,7 +152,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
         sdl_rect.y = y;
         linkedListElement = linkedListElement->next;
     }
-#if 0
+#if 1
     sdl_rect.x = 0;
     sdl_rect.y = 0;
     sdl_rect.w = config->video_size_x_px;

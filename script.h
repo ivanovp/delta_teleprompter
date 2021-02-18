@@ -28,6 +28,8 @@ typedef struct
     uint16_t        heightOffsetPx;         /* Offset inside on line. Range: 0 .. wrappedScriptHeightPx - 1 */
     uint16_t        linePerScreen;          /* Count of lines on screen */
     bool_t          isEnd;                  /* TRUE: End of script reached */
+    uint16_t        maxWidthPx;
+    uint16_t        maxHeightPx;
     config_t      * config;                 /* Actual configuration */
 } wrappedScript_t;
 
