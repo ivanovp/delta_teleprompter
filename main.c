@@ -117,7 +117,6 @@ config_t config =
 /* Teleprompter related */
 uint32_t     introTimer = DEFAULT_INTRO_TIMER;
 uint32_t     loadScriptTimer = DEFAULT_LOAD_SCRIPT_TIMER;
-uint32_t     teleprompterTimer = 0;
 bool_t       teleprompterRunning   = TRUE;
 main_state_machine_t main_state_machine = STATE_undefined;
 main_state_machine_t main_state_machine_next = STATE_undefined;
@@ -543,42 +542,6 @@ bool_t init (void)
 }
 
 /**
- * @brief handleMovement
- * Handle button presses and move figure according to that.
- */
-void handleMovement (void)
-{
-    if (rightPressed && rightChanged)
-    {
-        /* Right */
-    }
-    if (leftPressed && leftChanged)
-    {
-        /* Left */
-    }
-    if (downPressed && downChanged)
-    {
-        /* Down */
-    }
-    if (upPressed && upChanged)
-    {
-    }
-    if (SDL_GetTicks() >= teleprompterTimer)
-    {
-        /* Automatic fall */
-        int16_t ticks;
-
-        /* Delay time = 0.8 sec - level * 0.1 sec */
-        ticks = OS_TICKS_PER_SEC * 8 / 10 - 1 * OS_TICKS_PER_SEC / 10;
-        if (ticks < OS_TICKS_PER_SEC / 10) /* less than 0.1 sec */
-        {
-            ticks = OS_TICKS_PER_SEC / 10;
-        }
-        teleprompterTimer = SDL_GetTicks() + ticks;
-    }
-}
-
-/**
  * @brief scrollScriptUpPx Scroll text up by one pixel.
  *
  * @param aWrappedScript[in] Script to be scrolled.
@@ -649,6 +612,32 @@ void scrollScriptDown(wrappedScript_t * aWrappedScript, int lineCount)
 }
 
 /**
+ * @brief handleMovement
+ * Handle button presses and move figure according to that.
+ */
+void handleMovement (void)
+{
+    if (rightPressed && rightChanged)
+    {
+        /* Right */
+    }
+    else if (leftPressed && leftChanged)
+    {
+        /* Left */
+    }
+    if (upPressed && upChanged)
+    {
+        /* Scroll script up */
+        scrollScriptUp(&wrappedScript, config.scroll_line_count);
+    }
+    else if (downPressed && downChanged)
+    {
+        /* Scroll script down */
+        scrollScriptDown(&wrappedScript, config.scroll_line_count);
+    }
+}
+
+/**
  * @brief handle_main_state_machine
  * Check inputs and change state machine if it is necessary.
  */
@@ -711,16 +700,6 @@ void handleMainStateMachine (void)
             {
                 main_state_machine = STATE_paused;
             }
-            if (upPressed && upChanged)
-            {
-                /* Scroll script up */
-                scrollScriptUp(&wrappedScript, config.scroll_line_count);
-            }
-            else if (downPressed && downChanged)
-            {
-                /* Scroll script down */
-                scrollScriptDown(&wrappedScript, config.scroll_line_count);
-            }
             drawScreen ();
             scrollScriptUpPx(&wrappedScript);
             if (wrappedScript.isEnd)
@@ -729,19 +708,10 @@ void handleMainStateMachine (void)
             }
             break;
         case STATE_paused:
+            handleMovement();
             if (enterPressed && enterChanged)
             {
                 main_state_machine = STATE_running;
-            }
-            if (upPressed && upChanged)
-            {
-                /* Scroll script up */
-                scrollScriptUp(&wrappedScript, config.scroll_line_count);
-            }
-            else if (downPressed && downChanged)
-            {
-                /* Scroll script down */
-                scrollScriptDown(&wrappedScript, config.scroll_line_count);
             }
             drawScreen ();
             if (wrappedScript.isEnd)
