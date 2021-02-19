@@ -380,6 +380,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
     int      text_height_px;
     char     text[1024] = " "; /* Empty string by default, later will be filled */
     size_t   len;
+    uint16_t additional_line_count;
 
     aWrappedScript->maxWidthPx = aMaxWidthPx;
     aWrappedScript->maxHeightPx = aMaxHeightPx;
@@ -391,8 +392,33 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
     /* Add empty lines, so the scrolling will start with empty screen */
     TTF_SizeUTF8(aWrappedScript->ttf_font, text, &text_width_px, &text_height_px);
     aWrappedScript->linePerScreen = aMaxHeightPx / text_height_px;
-    for (i = 0u; i < aWrappedScript->linePerScreen && ok; i++)
+    additional_line_count = aWrappedScript->linePerScreen + 6;
+    for (i = 0u; i < additional_line_count && ok; i++)
     {
+        if (i == additional_line_count - 6)
+        {
+            text[0] = '3';
+        }
+        if (i == additional_line_count - 5)
+        {
+            text[0] = ' ';
+        }
+        if (i == additional_line_count - 4)
+        {
+            text[0] = '2';
+        }
+        if (i == additional_line_count - 3)
+        {
+            text[0] = ' ';
+        }
+        if (i == additional_line_count - 2)
+        {
+            text[0] = '1';
+        }
+        if (i == additional_line_count - 1)
+        {
+            text[0] = ' ';
+        }
         ok = addScriptElement(text, &(aWrappedScript->wrappedScriptList));
     }
 
@@ -423,8 +449,10 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
                 TTF_SizeUTF8(aWrappedScript->ttf_font, text, &text_width_px, &text_height_px);
 //                printf("width_px: %i height_px: %i\n", text_width_px, text_height_px);
 
+                // Check if next word is longer than necessary
                 if (text_width_px >= aMaxWidthPx)
                 {
+                    // It's longer, wrap text at previous word
                     len = (uintptr_t)prev_end_ptr - (uintptr_t)start_ptr;
                     strncpy(text, start_ptr, len);
                     text[len] = CHR_EOS; // end of string
@@ -442,6 +470,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
 
     if (ok)
     {
+        // Add last chunk of text
         len = (uintptr_t)&aScriptBuffer[i] - (uintptr_t)start_ptr;
         strncpy(text, start_ptr, len);
         text[len] = CHR_EOS; // end of string
@@ -650,7 +679,9 @@ void handleMainStateMachine (void)
     {
         case STATE_intro:
             introTimer--;
-            if ((enterPressed && enterChanged) || !introTimer)
+            if ((enterPressed && enterChanged)
+                    || (spacePressed && spaceChanged)
+                    || !introTimer)
             {
                 main_state_machine = STATE_load_script;
             }
@@ -696,7 +727,8 @@ void handleMainStateMachine (void)
             break;
         case STATE_running:
             handleMovement ();
-            if (enterPressed && enterChanged)
+            if ((enterPressed && enterChanged)
+                    || (spacePressed && spaceChanged))
             {
                 main_state_machine = STATE_paused;
             }
@@ -709,7 +741,8 @@ void handleMainStateMachine (void)
             break;
         case STATE_paused:
             handleMovement();
-            if (enterPressed && enterChanged)
+            if ((enterPressed && enterChanged)
+                    || (spacePressed && spaceChanged))
             {
                 main_state_machine = STATE_running;
             }
@@ -720,7 +753,8 @@ void handleMainStateMachine (void)
             }
             break;
         case STATE_end:
-            if (enterPressed && enterChanged)
+            if ((enterPressed && enterChanged)
+                    || (spacePressed && spaceChanged))
             {
                 /* Restart teleprompter */
                 introTimer = DEFAULT_INTRO_TIMER;
