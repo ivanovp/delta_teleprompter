@@ -110,6 +110,8 @@ config_t config =
     .background_color = { 0, 0, 0, 0},      // default background color is black
     .text_color = { 0xFF, 0xFF, 0xFF, 0 },  // default text color is white
     .align_center = TRUE,
+    .auto_scroll_speed = 255,
+    .scroll_line_count = 5,
 };
 
 /* Teleprompter related */
@@ -132,7 +134,6 @@ char * scriptBuffer = NULL;
 wrappedScript_t wrappedScript =
 {
     .ttf_font = NULL,
-    .sdl_text_color = {0xff, 0xff, 0xff, 0},
     .wrappedScriptList = { 0 },
     .wrappedScriptHeightPx = 0,
     .config = &config,
@@ -505,8 +506,8 @@ bool_t init (void)
     printf("Video memory: %i KiB\n", videoInfo->video_mem);
 
     printf("Requested screen size: %i x %i x %i\n", config.video_size_x_px, config.video_size_y_px, config.video_depth_bit);
-    printf("Background color: 0x%08X\n", config.background_color);
-    printf("Text color:       0x%08X\n", config.text_color);
+    printf("Background color: %02X %02X %02X\n", config.background_color.r, config.background_color.g, config.background_color.b);
+    printf("Text color:       %02X %02X %02X\n", config.text_color.r, config.text_color.g, config.text_color.b);
 
     // Set up screen
     screen = SDL_SetVideoMode(config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, SDL_SWSURFACE
@@ -713,12 +714,12 @@ void handleMainStateMachine (void)
             if (upPressed && upChanged)
             {
                 /* Scroll script up */
-                scrollScriptUp(&wrappedScript, 1);
+                scrollScriptUp(&wrappedScript, config.scroll_line_count);
             }
             else if (downPressed && downChanged)
             {
                 /* Scroll script down */
-                scrollScriptDown(&wrappedScript, 1);
+                scrollScriptDown(&wrappedScript, config.scroll_line_count);
             }
             drawScreen ();
             scrollScriptUpPx(&wrappedScript);
@@ -735,12 +736,12 @@ void handleMainStateMachine (void)
             if (upPressed && upChanged)
             {
                 /* Scroll script up */
-                scrollScriptUp(&wrappedScript, 1);
+                scrollScriptUp(&wrappedScript, config.scroll_line_count);
             }
             else if (downPressed && downChanged)
             {
                 /* Scroll script down */
-                scrollScriptDown(&wrappedScript, 1);
+                scrollScriptDown(&wrappedScript, config.scroll_line_count);
             }
             drawScreen ();
             if (wrappedScript.isEnd)

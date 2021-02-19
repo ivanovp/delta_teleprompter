@@ -80,6 +80,8 @@ typedef struct
     SDL_Color   background_color;
     SDL_Color   text_color;
     bool_t      align_center;
+    uint8_t     auto_scroll_speed;
+    uint8_t     scroll_line_count;
 } config_t;
 
 /* Teleprompter related */

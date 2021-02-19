@@ -113,14 +113,15 @@ void drawScript(wrappedScript_t * aWrappedScript)
     SDL_Surface         * sdl_text;
     linkedList_t        * wrappedScriptList = &( aWrappedScript->wrappedScriptList );
     TTF_Font            * ttfFont = aWrappedScript->ttf_font;
-    SDL_Color             sdlTextColor = aWrappedScript->sdl_text_color;
     linkedListElement_t * linkedListElement = wrappedScriptList->actual;
     config_t            * config = aWrappedScript->config;
+    SDL_Color             sdlTextColor = config->text_color;
     Sint16                y_hide_px = (config->video_size_y_px - aWrappedScript->maxHeightPx) / 2;
+    Sint16                x = (config->video_size_x_px - aWrappedScript->maxWidthPx) / 2;
     Sint16                y = -(aWrappedScript->heightOffsetPx);
     Uint32                background_color;
 
-    sdl_rect.x = (config->video_size_x_px - aWrappedScript->maxWidthPx) / 2;
+    sdl_rect.x = x;
     sdl_rect.y = y;
 
 //    printf("%s start\n", __FUNCTION__);
@@ -135,6 +136,11 @@ void drawScript(wrappedScript_t * aWrappedScript)
         {
             printf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
             break;
+        }
+
+        if (config->align_center)
+        {
+            sdl_rect.x = config->video_size_x_px / 2 - sdl_text->clip_rect.w / 2;
         }
 
         sdl_rect.w = sdl_text->clip_rect.w;
@@ -156,6 +162,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
 
     background_color = SDL_MapRGB(screen->format, config->background_color.r, config->background_color.g, config->background_color.b);
 
+    // TODO add fading
     sdl_rect.x = 0;
     sdl_rect.y = 0;
     sdl_rect.w = config->video_size_x_px;
