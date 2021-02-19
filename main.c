@@ -31,7 +31,6 @@
 #include "gfx.h"
 #include "linkedlist.h"
 #include "script.h"
-#include "dejavusans_ttf.h"
 
 #define CONFIG_DIR                  "/.delta_teleprompter"
 #define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
@@ -137,6 +136,11 @@ wrappedScript_t wrappedScript =
     .wrappedScriptHeightPx = 0,
     .config = &config,
 };
+
+/* Symbols for DejavuSans.o which is directly converted from .ttf to object using 'ld' */
+extern uint8_t _binary_DejaVuSans_ttf_start[];
+extern uint8_t _binary_DefavuSans_ttf_end;
+extern uint8_t _binary_DejaVuSans_ttf_size;
 
 /**
  * Set up default configuration and load if configuration file exists.
@@ -472,7 +476,7 @@ bool_t init (void)
     }
 #endif
     // Load TrueType font which is embedded into this software
-    SDL_RWops* rwops = SDL_RWFromConstMem(dejavusans_ttf, sizeof(dejavusans_ttf));
+    SDL_RWops* rwops = SDL_RWFromConstMem(_binary_DejaVuSans_ttf_start, (size_t)&_binary_DejaVuSans_ttf_size);
     wrappedScript.ttf_font = TTF_OpenFontRW(rwops, 1, config.ttf_size);
     if (wrappedScript.ttf_font == NULL)
     {
