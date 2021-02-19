@@ -99,16 +99,17 @@ const char *homeDir;
 config_t config =
 {
     .version = 1,
-    .script_file_path = { 0 },
+    .script_file_path = "",
     .ttf_file_path = "",
     .ttf_size = 36,
     .text_width_percent = 90,
     .text_height_percent = 90,
-    .video_size_x_px = 1024,
-    .video_size_y_px = 768,
+    .video_size_x_px = 640,
+    .video_size_y_px = 480,
     .video_depth_bit = 16,
-    .background_color = DEFAULT_BG_COLOR,
-    .text_color = DEFAULT_TEXT_COLOR,
+    .background_color = { 0, 0, 0, 0},      // default background color is black
+    .text_color = { 0xFF, 0xFF, 0xFF, 0 },  // default text color is white
+    .align_center = TRUE,
 };
 
 /* Teleprompter related */
@@ -513,7 +514,9 @@ bool_t init (void)
                               );
 
     // Create background image
-    background = SDL_CreateRGBSurface(SDL_SWSURFACE, config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, 0, 0, 0, 0);
+    background = SDL_CreateRGBSurface(SDL_SWSURFACE,
+                                      config.video_size_x_px, config.video_size_y_px, config.video_depth_bit,
+                                      config.background_color.r, config.background_color.g, config.background_color.b, 0);
 
     //Apply image to screen
     SDL_BlitSurface( background, NULL, screen, NULL );

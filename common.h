@@ -12,6 +12,7 @@
 #define INCLUDE_COMMON_H
 
 #include <stdint.h>
+#include <SDL/SDL.h>
 
 #define VERSION_MAJOR    1
 #define VERSION_MINOR    1
@@ -76,8 +77,9 @@ typedef struct
     uint16_t    video_size_x_px;
     uint16_t    video_size_y_px;
     uint8_t     video_depth_bit;
-    uint32_t    background_color;
-    uint32_t    text_color;
+    SDL_Color   background_color;
+    SDL_Color   text_color;
+    bool_t      align_center;
 } config_t;
 
 /* Teleprompter related */

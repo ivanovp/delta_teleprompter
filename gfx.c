@@ -118,6 +118,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
     config_t            * config = aWrappedScript->config;
     Sint16                y_hide_px = (config->video_size_y_px - aWrappedScript->maxHeightPx) / 2;
     Sint16                y = -(aWrappedScript->heightOffsetPx);
+    Uint32                background_color;
 
     sdl_rect.x = (config->video_size_x_px - aWrappedScript->maxWidthPx) / 2;
     sdl_rect.y = y;
@@ -152,19 +153,21 @@ void drawScript(wrappedScript_t * aWrappedScript)
         sdl_rect.y = y;
         linkedListElement = linkedListElement->next;
     }
-#if 1
+
+    background_color = SDL_MapRGB(screen->format, config->background_color.r, config->background_color.g, config->background_color.b);
+
     sdl_rect.x = 0;
     sdl_rect.y = 0;
     sdl_rect.w = config->video_size_x_px;
     sdl_rect.h = y_hide_px;
-    SDL_FillRect(screen, &sdl_rect, config->background_color);
+    SDL_FillRect(screen, &sdl_rect, background_color);
 
     sdl_rect.x = 0;
     sdl_rect.y = config->video_size_y_px - y_hide_px - 1;
     sdl_rect.w = config->video_size_x_px;
     sdl_rect.h = y_hide_px;
-    SDL_FillRect(screen, &sdl_rect, config->background_color);
-#endif
+    SDL_FillRect(screen, &sdl_rect, background_color);
+
 //    printf("%s end\n", __FUNCTION__);
 }
 
