@@ -206,6 +206,65 @@ bool_t saveConfig (void)
 }
 
 /**
+ * @brief loadFont Load font from file. If no file path is given it loads embedded font.
+ *
+ * @param aFontFilePath[in]     Font to load. It can be NULL or zero length string as well.
+ * @param aFontSize[in]         Font size to use.
+ * @param aWrappedScript[out]   Font of script to be filled.
+ * @return TRUE: if any font successfully loaded.
+ */
+bool_t loadFont(const char * aFontFilePath, int aFontSize, wrappedScript_t *aWrappedScript)
+{
+    bool ok = TRUE;
+
+    if (aWrappedScript->ttf_font)
+    {
+        printf("Releasing previous font...\n");
+        TTF_CloseFont(aWrappedScript->ttf_font);
+        aWrappedScript->ttf_font = NULL;
+    }
+    // Load a TrueType font
+    if (aFontFilePath != NULL && strlen(aFontFilePath))
+    {
+        printf("Loading font '%s'...\n", aFontFilePath);
+        aWrappedScript->ttf_font = TTF_OpenFont(aFontFilePath, aFontSize);
+        if (aWrappedScript->ttf_font != NULL)
+        {
+            printf("Done.\n");
+        }
+        else
+        {
+            printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
+        }
+    }
+
+#if 0
+    if (wrappedScript.ttf_font == NULL)
+    {
+        wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", aFontSize);
+    }
+    if (wrappedScript.ttf_font == NULL)
+    {
+        wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/trutype/dejavu/DejaVuSans.ttf", aFontSize);
+    }
+#endif
+    if (aWrappedScript->ttf_font == NULL)
+    {
+        printf("Loading embedded font\n");
+        // Load TrueType font which is embedded into this software
+        SDL_RWops* rwops = SDL_RWFromConstMem(_binary_DejaVuSans_ttf_start, (size_t)&_binary_DejaVuSans_ttf_size);
+        aWrappedScript->ttf_font = TTF_OpenFontRW(rwops, 1, aFontSize);
+        if (aWrappedScript->ttf_font == NULL)
+        {
+            printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
+            ok = FALSE;
+        }
+    }
+
+    return ok;
+}
+
+/**
  * @brief loadScript Load script from file.
  *
  * @param[in]  aScriptFilePath  Script to load.
@@ -434,19 +493,19 @@ bool_t init (void)
     }
     strncpy(path, homeDir, sizeof(path));
     strncat(path, CONFIG_DIR, sizeof(path));
-    printf("%s mkdir: %s\r\n", __FUNCTION__, path);
+    printf("%s mkdir: %s\n", __FUNCTION__, path);
     mkdir(path, 0755);
 
     SDL_Init(SDL_INIT_EVERYTHING);
 
     videoInfo = SDL_GetVideoInfo();
 
-    printf("Actual screen size: %i x %i\r\n", videoInfo->current_w, videoInfo->current_h);
-    printf("Video memory: %i KiB\r\n", videoInfo->video_mem);
+    printf("Actual screen size: %i x %i\n", videoInfo->current_w, videoInfo->current_h);
+    printf("Video memory: %i KiB\n", videoInfo->video_mem);
 
-    printf("Requested screen size: %i x %i x %i\r\n", config.video_size_x_px, config.video_size_y_px, config.video_depth_bit);
-    printf("Background color: 0x%08X\r\n", config.background_color);
-    printf("Text color:       0x%08X\r\n", config.text_color);
+    printf("Requested screen size: %i x %i x %i\n", config.video_size_x_px, config.video_size_y_px, config.video_depth_bit);
+    printf("Background color: 0x%08X\n", config.background_color);
+    printf("Text color:       0x%08X\n", config.text_color);
 
     // Set up screen
     screen = SDL_SetVideoMode(config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, SDL_SWSURFACE
@@ -463,25 +522,6 @@ bool_t init (void)
     if (TTF_Init() != 0)
     {
         printf("TTF_Init() Failed: %s\n", TTF_GetError());
-        SDL_Quit();
-        exit(1);
-    }
-
-    // Load a TrueType font
-#if 0
-    wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", 36);
-    if (wrappedScript.ttf_font == NULL)
-    {
-        wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/trutype/dejavu/DejaVuSans.ttf", 36);
-    }
-#endif
-    // Load TrueType font which is embedded into this software
-    SDL_RWops* rwops = SDL_RWFromConstMem(_binary_DejaVuSans_ttf_start, (size_t)&_binary_DejaVuSans_ttf_size);
-    wrappedScript.ttf_font = TTF_OpenFontRW(rwops, 1, config.ttf_size);
-    if (wrappedScript.ttf_font == NULL)
-    {
-        printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
-        TTF_Quit();
         SDL_Quit();
         exit(1);
     }
@@ -611,6 +651,7 @@ void scrollScriptDown(wrappedScript_t * aWrappedScript, int lineCount)
 void handleMainStateMachine (void)
 {
     uint8_t i;
+    bool    ok;
 
     switch (main_state_machine)
     {
@@ -629,21 +670,22 @@ void handleMainStateMachine (void)
             SDL_Flip(screen);
             break;
         case STATE_load_script:
-            if (loadScript(scriptFilePath, &scriptBuffer))
+            ok = loadFont(config.ttf_file_path, config.ttf_size, &wrappedScript);
+            if (ok)
             {
-                if (wrapScript(scriptBuffer,
-                               (float)config.video_size_x_px * config.text_width_percent / 100.0f,
-                               (float)config.video_size_y_px * config.text_height_percent / 100.0f,
-                               &wrappedScript))
-                {
-//                    printScript(&wrappedScriptList);
-                    /* Script successfully loaded, immediately show it */
-                    main_state_machine = STATE_running;
-                }
-                else
-                {
-                    // TODO what next?
-                }
+                ok = loadScript(scriptFilePath, &scriptBuffer);
+            }
+            if (ok)
+            {
+                ok = wrapScript(scriptBuffer,
+                                (float)config.video_size_x_px * config.text_width_percent / 100.0f,
+                                (float)config.video_size_y_px * config.text_height_percent / 100.0f,
+                                &wrappedScript);
+            }
+            if (ok)
+            {
+                /* Script successfully loaded, immediately show it */
+                main_state_machine = STATE_running;
             }
             else
             {
@@ -737,7 +779,7 @@ void key_pressed(uint8_t key_index, bool_t pressed)
     }
     else
     {
-        printf("%s internal error\r\n", __FUNCTION__);
+        printf("%s internal error\n", __FUNCTION__);
     }
 }
 
