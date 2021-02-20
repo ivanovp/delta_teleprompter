@@ -131,11 +131,33 @@ wrappedScript_t wrappedScript =
     .wrappedScriptHeightPx = 0,
     .config = &config,
 };
+SDL_TimerID autoScrollTimer = NULL;
 
 /* Symbols for DejavuSans.o which is directly converted from .ttf to object using 'ld' */
 extern uint8_t _binary_DejaVuSans_ttf_start[];
 extern uint8_t _binary_DefavuSans_ttf_end;
 extern uint8_t _binary_DejaVuSans_ttf_size;
+
+Uint32 timerCallbackFunc(Uint32 interval, void *param)
+{
+    SDL_Event event;
+    SDL_UserEvent userevent;
+
+    /* This callback pushes an SDL_USEREVENT event
+    into the queue, and causes our callback to be called again at the
+    same interval: */
+
+    userevent.type = SDL_USEREVENT;
+    userevent.code = 0;
+    userevent.data1 = NULL;
+    userevent.data2 = NULL;
+
+    event.type = SDL_USEREVENT;
+    event.user = userevent;
+
+    SDL_PushEvent(&event);
+    return(interval);
+}
 
 /**
  * Set up default configuration and load if configuration file exists.
@@ -526,6 +548,17 @@ void initScreen(void)
     SDL_BlitSurface(background, NULL, screen, NULL);
 }
 
+
+void initTimer(void)
+{
+    Uint32 delay = (config.auto_scroll_speed ^ UINT8_MAX);
+    if (autoScrollTimer)
+    {
+        SDL_RemoveTimer(autoScrollTimer);
+    }
+    autoScrollTimer = SDL_AddTimer(delay, timerCallbackFunc, NULL);
+}
+
 /**
  * @brief init
  * Initialize teleprompter.
@@ -576,6 +609,7 @@ bool_t init (void)
     printf("Full screen:           %i\n", config.full_screen);
 
     initScreen();
+    initTimer();
 
     // Initialize SDL_ttf library
     if (TTF_Init() != 0)
@@ -591,6 +625,8 @@ bool_t init (void)
     }
     keys[KEY_UP].repeatTick = FAST_REPEAT_TICK;
     keys[KEY_DOWN].repeatTick = FAST_REPEAT_TICK;
+    keys[KEY_LEFT].repeatTick = FAST_REPEAT_TICK;
+    keys[KEY_RIGHT].repeatTick = FAST_REPEAT_TICK;
 
     return TRUE;
 }
@@ -680,7 +716,9 @@ void handleMovement (void)
         if (config.auto_scroll_speed < 255)
         {
             config.auto_scroll_speed++;
+            initTimer();
         }
+        printf("Auto scroll speed: %i\n", config.auto_scroll_speed);
     }
     else if (IS_PRESSED_CHANGED(KEY_LEFT))
     {
@@ -688,7 +726,9 @@ void handleMovement (void)
         if (config.auto_scroll_speed > 0)
         {
             config.auto_scroll_speed--;
+            initTimer();
         }
+        printf("Auto scroll speed: %i\n", config.auto_scroll_speed);
     }
     if (IS_PRESSED_CHANGED(KEY_PLUS))
     {
@@ -785,6 +825,7 @@ void handleMainStateMachine (void)
                 main_state_machine_next = STATE_end;
                 main_state_machine = STATE_load_script_wait;
             }
+            wrappedScript.isEnd = FALSE;
             break;
         case STATE_load_script_wait:
             loadScriptTimer--;
@@ -800,7 +841,6 @@ void handleMainStateMachine (void)
                 main_state_machine = STATE_paused;
             }
             drawScreen ();
-            scrollScriptUpPx(&wrappedScript);
             if (wrappedScript.isEnd)
             {
                 main_state_machine = STATE_end;
@@ -856,7 +896,7 @@ void key_pressed(uint8_t key_index, bool_t pressed)
     }
 }
 
-void key_task()
+void eventHandler()
 {
     int i;
     SDL_Event event;
@@ -874,7 +914,14 @@ void key_task()
 
     while (SDL_PollEvent(&event))
     {
-        if (event.type == SDL_KEYDOWN)
+        if (event.type == SDL_USEREVENT)
+        {
+            if (TELEPROMPTER_IS_RUNNING())
+            {
+                scrollScriptUpPx(&wrappedScript);
+            }
+        }
+        else if (event.type == SDL_KEYDOWN)
         {
             if (textInputIsStarted)
             {
@@ -995,9 +1042,9 @@ void run (void)
 
     while (teleprompterRunning)
     {
-        key_task();
+        eventHandler();
         handleMainStateMachine ();
-        SDL_Delay(config.auto_scroll_speed ^ UINT8_MAX);
+        SDL_Delay(1);
     }
 }
 

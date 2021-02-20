@@ -47,6 +47,7 @@
 #define _BV(x)  (1u << (x))
 
 #define TELEPROMPTER_IS_PAUSED()    (main_state_machine == STATE_paused)
+#define TELEPROMPTER_IS_RUNNING()   (main_state_machine == STATE_running)
 #define TELEPROMPTER_IS_FINISHED()  (main_state_machine == STATE_end)
 
 #define FSYS_FILENAME_MAX   255 // FIXME inherited from dingoo
@@ -93,7 +94,7 @@ extern main_state_machine_t main_state_machine; /* Teleprompter state machine. @
 extern config_t     config; /* Actual configuration. */
 
 bool_t saveConfig (void);
-void key_task();
+void eventHandler();
 
 #endif /* INCLUDE_COMMON_H */
 
