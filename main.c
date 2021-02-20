@@ -35,7 +35,7 @@
 #define CONFIG_DIR                  "/.delta_teleprompter"
 #define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
 
-#define MAX_KEYS                    10
+#define MAX_KEYS                    11
 #define KEY_UP                      0
 #define KEY_DOWN                    1
 #define KEY_LEFT                    2
@@ -46,6 +46,7 @@
 #define KEY_MINUS                   7
 #define KEY_HOME                    8
 #define KEY_END                     9
+#define KEY_F11                     10
 
 #define FAST_REPEAT_TICK            150
 #define NORMAL_REPEAT_TICK          250
@@ -374,7 +375,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
     int      text_height_px;
     char     text[1024] = " "; /* Empty string by default, later will be filled */
     size_t   len;
-    uint16_t additional_line_count;
+    uint32_t additional_line_count;
 
     printf("Wrap script to %i x %i... ", aMaxWidthPx, aMaxHeightPx);
     aWrappedScript->maxWidthPx = aMaxWidthPx;
@@ -497,6 +498,33 @@ void printScript(linkedList_t * aWrappedScriptList)
     printf("%s end\n", __FUNCTION__);
 }
 
+void initScreen(void)
+{
+    Uint32 flags = SDL_SWSURFACE;
+
+    if (screen)
+    {
+        SDL_FreeSurface(screen);
+    }
+
+    if (config.full_screen)
+    {
+        flags |= SDL_FULLSCREEN;
+    }
+    screen = SDL_SetVideoMode(config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, flags);
+
+    if (background)
+    {
+        SDL_FreeSurface(background);
+    }
+    // Create background image
+    background = SDL_CreateRGBSurface(SDL_SWSURFACE,
+                                      config.video_size_x_px, config.video_size_y_px, config.video_depth_bit,
+                                      config.background_color.r, config.background_color.g, config.background_color.b, 0);
+
+    //Apply image to screen
+    SDL_BlitSurface(background, NULL, screen, NULL);
+}
 
 /**
  * @brief init
@@ -506,7 +534,8 @@ void printScript(linkedList_t * aWrappedScriptList)
  */
 bool_t init (void)
 {
-    char path[256];
+    uint8_t i;
+    char    path[256];
     const SDL_VideoInfo * videoInfo;
 
     setlocale(LC_ALL, ""); // FIXME needed?
@@ -546,21 +575,7 @@ bool_t init (void)
     printf("Scroll line count:     %i\n", config.scroll_line_count);
     printf("Full screen:           %i\n", config.full_screen);
 
-    // Set up screen
-    Uint32 flags = SDL_SWSURFACE;
-    if (config.full_screen)
-    {
-        flags |= SDL_FULLSCREEN;
-    }
-    screen = SDL_SetVideoMode(config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, flags);
-
-    // Create background image
-    background = SDL_CreateRGBSurface(SDL_SWSURFACE,
-                                      config.video_size_x_px, config.video_size_y_px, config.video_depth_bit,
-                                      config.background_color.r, config.background_color.g, config.background_color.b, 0);
-
-    //Apply image to screen
-    SDL_BlitSurface( background, NULL, screen, NULL );
+    initScreen();
 
     // Initialize SDL_ttf library
     if (TTF_Init() != 0)
@@ -570,14 +585,12 @@ bool_t init (void)
         exit(1);
     }
 
+    for (i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
+    {
+        keys[i].repeatTick = NORMAL_REPEAT_TICK;
+    }
     keys[KEY_UP].repeatTick = FAST_REPEAT_TICK;
     keys[KEY_DOWN].repeatTick = FAST_REPEAT_TICK;
-    keys[KEY_LEFT].repeatTick = NORMAL_REPEAT_TICK;
-    keys[KEY_RIGHT].repeatTick = NORMAL_REPEAT_TICK;
-    keys[KEY_ENTER].repeatTick = NORMAL_REPEAT_TICK;
-    keys[KEY_SPACE].repeatTick = NORMAL_REPEAT_TICK;
-    keys[KEY_PLUS].repeatTick = NORMAL_REPEAT_TICK;
-    keys[KEY_MINUS].repeatTick = NORMAL_REPEAT_TICK;
 
     return TRUE;
 }
@@ -702,6 +715,11 @@ void handleMovement (void)
     {
         /* Scroll script down */
         scrollScriptDown(&wrappedScript, config.scroll_line_count);
+    }
+    if (IS_PRESSED_CHANGED(KEY_F11))
+    {
+        config.full_screen = !config.full_screen;
+        initScreen();
     }
 
     if (loadFontWrap)
@@ -910,6 +928,9 @@ void key_task()
                 case SDLK_SPACE:
                     key_pressed(KEY_SPACE, TRUE);
                     break;
+                case SDLK_F11:
+                    key_pressed(KEY_F11, TRUE);
+                    break;
                 case SDLK_ESCAPE:
                     teleprompterRunning = FALSE;
                     break;
@@ -948,6 +969,11 @@ void key_task()
                 case SDLK_SPACE:
                     key_pressed(KEY_SPACE, FALSE);
                     break;
+                case SDLK_F11:
+                    key_pressed(KEY_F11, FALSE);
+                    break;
+                case SDLK_ESCAPE:
+                    break;
                 default:
                     break;
             }
@@ -972,7 +998,7 @@ void run (void)
     {
         key_task();
         handleMainStateMachine ();
-        SDL_Delay( config.auto_scroll_speed ^ UINT8_MAX );
+        SDL_Delay(config.auto_scroll_speed ^ UINT8_MAX);
     }
 }
 
