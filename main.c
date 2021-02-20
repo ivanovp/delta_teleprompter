@@ -110,7 +110,7 @@ config_t config =
     .background_color = { 0, 0, 0, 0},      // default background color is black
     .text_color = { 0xFF, 0xFF, 0xFF, 0 },  // default text color is white
     .align_center = TRUE,
-    .auto_scroll_speed = 255,
+    .auto_scroll_speed = 240,               // range: 0..255
     .scroll_line_count = 5,
 };
 
@@ -533,9 +533,18 @@ bool_t init (void)
     printf("Actual screen size: %i x %i\n", videoInfo->current_w, videoInfo->current_h);
     printf("Video memory: %i KiB\n", videoInfo->video_mem);
 
+    printf("Configuration version: %i\n", config.version);
+    printf("Script file path:      %s\n", config.script_file_path);
+    printf("Font file path:        %s\n", config.ttf_file_path);
+    printf("Font size:             %i\n", config.ttf_size);
+    printf("Text width:            %i%%\n", config.text_width_percent);
+    printf("Text height:           %i%%\n", config.text_height_percent);
     printf("Requested screen size: %i x %i x %i\n", config.video_size_x_px, config.video_size_y_px, config.video_depth_bit);
-    printf("Background color: %02X %02X %02X\n", config.background_color.r, config.background_color.g, config.background_color.b);
-    printf("Text color:       %02X %02X %02X\n", config.text_color.r, config.text_color.g, config.text_color.b);
+    printf("Background color:      %02X %02X %02X\n", config.background_color.r, config.background_color.g, config.background_color.b);
+    printf("Text color:            %02X %02X %02X\n", config.text_color.r, config.text_color.g, config.text_color.b);
+    printf("Align center:          %i\n", config.align_center);
+    printf("Auto scroll speed:     %i\n", config.auto_scroll_speed);
+    printf("Scroll line count:     %i\n", config.scroll_line_count);
 
     // Set up screen
     screen = SDL_SetVideoMode(config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, SDL_SWSURFACE
@@ -908,8 +917,7 @@ void run (void)
     {
         key_task();
         handleMainStateMachine ();
-        usleep( 1e3 );
-//        SDL_Delay( 1 );
+        SDL_Delay( config.auto_scroll_speed ^ UINT8_MAX );
     }
 }
 
