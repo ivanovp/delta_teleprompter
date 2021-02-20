@@ -724,7 +724,6 @@ void handleMovement (void)
 
     if (loadFontWrap)
     {
-        printf("Font size: %i\n", config.ttf_size);
         ok = loadFont(config.ttf_file_path, config.ttf_size, &wrappedScript);
         if (ok)
         {

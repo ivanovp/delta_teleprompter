@@ -34,6 +34,7 @@ linkedListElement_t* allocElement (void* aItem, linkedListElement_t* aPrev)
     if (linkedList)
     {
         linkedList->item = aItem;
+        linkedList->next = NULL;
         linkedList->prev = aPrev;
     }
 
@@ -50,7 +51,6 @@ linkedListElement_t* allocElement (void* aItem, linkedListElement_t* aPrev)
 linkedListElement_t* freeElement (linkedListElement_t* aLinkedList)
 {
     linkedListElement_t* next = NULL;
-
     if (aLinkedList)
     {
         next = aLinkedList->next;
@@ -79,6 +79,8 @@ void freeLinkedList (linkedList_t* aLinkedList)
     aLinkedList->first = NULL;
     aLinkedList->last = NULL;
     aLinkedList->actual = NULL;
+    aLinkedList->it = &(aLinkedList->first);
+    aLinkedList->it_prev = NULL;
 }
 
 /**
