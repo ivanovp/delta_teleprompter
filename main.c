@@ -35,13 +35,17 @@
 #define CONFIG_DIR                  "/.delta_teleprompter"
 #define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
 
-#define MAX_KEYS                    6
+#define MAX_KEYS                    10
 #define KEY_UP                      0
 #define KEY_DOWN                    1
 #define KEY_LEFT                    2
 #define KEY_RIGHT                   3
 #define KEY_ENTER                   4
 #define KEY_SPACE                   5
+#define KEY_PLUS                    6
+#define KEY_MINUS                   7
+#define KEY_HOME                    8
+#define KEY_END                     9
 
 #define FAST_REPEAT_TICK            150
 #define NORMAL_REPEAT_TICK          250
@@ -59,19 +63,9 @@ typedef struct
 
 mykey_t      keys[MAX_KEYS] = { 0 };
 
-#define leftPressed   keys[KEY_LEFT].pressed
-#define rightPressed  keys[KEY_RIGHT].pressed
-#define downPressed   keys[KEY_DOWN].pressed
-#define upPressed     keys[KEY_UP].pressed
-#define enterPressed  keys[KEY_ENTER].pressed
-#define spacePressed  keys[KEY_SPACE].pressed
-
-#define leftChanged   keys[KEY_LEFT].changed
-#define rightChanged  keys[KEY_RIGHT].changed
-#define downChanged   keys[KEY_DOWN].changed
-#define upChanged     keys[KEY_UP].changed
-#define enterChanged  keys[KEY_ENTER].changed
-#define spaceChanged  keys[KEY_SPACE].changed
+#define IS_PRESSED(key)             keys[(key)].pressed
+#define IS_CHANGED(key)             keys[(key)].changed
+#define IS_PRESSED_CHANGED(key)     (keys[(key)].pressed && keys[(key)].changed)
 
 const char* info[] =
 {
@@ -99,7 +93,7 @@ const char *homeDir;
 config_t config =
 {
     .version = 1,
-    .script_file_path = "",
+    .script_file_path = "script.txt",
     .ttf_file_path = "",
     .ttf_size = 36,
     .text_width_percent = 90,
@@ -112,6 +106,7 @@ config_t config =
     .align_center = TRUE,
     .auto_scroll_speed = 240,               // range: 0..255
     .scroll_line_count = 5,
+    .full_screen = FALSE,
 };
 
 /* Teleprompter related */
@@ -120,8 +115,6 @@ uint32_t     loadScriptTimer = DEFAULT_LOAD_SCRIPT_TIMER;
 bool_t       teleprompterRunning   = TRUE;
 main_state_machine_t main_state_machine = STATE_undefined;
 main_state_machine_t main_state_machine_next = STATE_undefined;
-
-char         scriptFilePath[FSYS_FILENAME_MAX] = "script.txt";
 
 // The images
 SDL_Surface* background = NULL;
@@ -152,7 +145,7 @@ void loadConfig (void)
     config_t configTemp;
     char path[256];
 
-    drawInfoScreen ("Loading configuration...");
+    printf("Loading configuration...\n");
 
     strncpy(path, homeDir, sizeof(path));
     strncat(path, CONFIG_FILENAME, sizeof(path));
@@ -180,9 +173,8 @@ bool_t saveConfig (void)
     FILE* configFile;
     char path[256];
 
-    drawInfoScreen ("Saving configuration...");
+    printf ("Saving configuration...\n");
 
-    strncpy (config.script_file_path, scriptFilePath, sizeof (config.script_file_path));
     strncpy(path, homeDir, sizeof(path));
     strncat(path, CONFIG_FILENAME, sizeof(path));
     printf("%s: %s\n", __FUNCTION__, path);
@@ -199,7 +191,7 @@ bool_t saveConfig (void)
     }
     else
     {
-      drawInfoScreen("Cannot save configuration!");
+      printf("Cannot save configuration!");
       SDL_Delay(500);
     }
 
@@ -220,14 +212,16 @@ bool_t loadFont(const char * aFontFilePath, int aFontSize, wrappedScript_t *aWra
 
     if (aWrappedScript->ttf_font)
     {
-        printf("Releasing previous font...\n");
+        printf("Releasing previous font... ");
         TTF_CloseFont(aWrappedScript->ttf_font);
         aWrappedScript->ttf_font = NULL;
+        printf("Done.\n");
     }
     // Load a TrueType font
+    printf("Font size: %i\n", aFontSize);
     if (aFontFilePath != NULL && strlen(aFontFilePath))
     {
-        printf("Loading font '%s'...\n", aFontFilePath);
+        printf("Loading font '%s'... ", aFontFilePath);
         aWrappedScript->ttf_font = TTF_OpenFont(aFontFilePath, aFontSize);
         if (aWrappedScript->ttf_font != NULL)
         {
@@ -382,17 +376,18 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
     size_t   len;
     uint16_t additional_line_count;
 
+    printf("Wrap script to %i x %i... ", aMaxWidthPx, aMaxHeightPx);
     aWrappedScript->maxWidthPx = aMaxWidthPx;
     aWrappedScript->maxHeightPx = aMaxHeightPx;
 
-    freeLinkedList(aWrappedScript->wrappedScriptList.first);
+    freeLinkedList(&aWrappedScript->wrappedScriptList);
     // Initialize iterator
     aWrappedScript->wrappedScriptList.it = &(aWrappedScript->wrappedScriptList.first);
 
     /* Add empty lines, so the scrolling will start with empty screen */
     TTF_SizeUTF8(aWrappedScript->ttf_font, text, &text_width_px, &text_height_px);
     aWrappedScript->linePerScreen = aMaxHeightPx / text_height_px;
-    additional_line_count = aWrappedScript->linePerScreen + 6;
+    additional_line_count = aWrappedScript->linePerScreen + 4;
     for (i = 0u; i < additional_line_count && ok; i++)
     {
         if (i == additional_line_count - 6)
@@ -482,8 +477,9 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
     {
         /* Error occurred: free linked list */
         // FIXME display some text?
-        freeLinkedList(aWrappedScript->wrappedScriptList.first);
+        freeLinkedList(&aWrappedScript->wrappedScriptList);
     }
+    printf("Done.\n");
 
     return ok;
 }
@@ -526,7 +522,10 @@ bool_t init (void)
     printf("%s mkdir: %s\n", __FUNCTION__, path);
     mkdir(path, 0755);
 
-    SDL_Init(SDL_INIT_EVERYTHING);
+    loadConfig ();
+
+    SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO);
+//    SDL_Init(SDL_INIT_EVERYTHING);
 
     videoInfo = SDL_GetVideoInfo();
 
@@ -545,11 +544,15 @@ bool_t init (void)
     printf("Align center:          %i\n", config.align_center);
     printf("Auto scroll speed:     %i\n", config.auto_scroll_speed);
     printf("Scroll line count:     %i\n", config.scroll_line_count);
+    printf("Full screen:           %i\n", config.full_screen);
 
     // Set up screen
-    screen = SDL_SetVideoMode(config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, SDL_SWSURFACE
-//                              | SDL_FULLSCREEN
-                              );
+    Uint32 flags = SDL_SWSURFACE;
+    if (config.full_screen)
+    {
+        flags |= SDL_FULLSCREEN;
+    }
+    screen = SDL_SetVideoMode(config.video_size_x_px, config.video_size_y_px, config.video_depth_bit, flags);
 
     // Create background image
     background = SDL_CreateRGBSurface(SDL_SWSURFACE,
@@ -567,14 +570,14 @@ bool_t init (void)
         exit(1);
     }
 
-    keys[KEY_UP].repeatTick = NORMAL_REPEAT_TICK;
+    keys[KEY_UP].repeatTick = FAST_REPEAT_TICK;
     keys[KEY_DOWN].repeatTick = FAST_REPEAT_TICK;
-    keys[KEY_LEFT].repeatTick = FAST_REPEAT_TICK;
-    keys[KEY_RIGHT].repeatTick = FAST_REPEAT_TICK;
+    keys[KEY_LEFT].repeatTick = NORMAL_REPEAT_TICK;
+    keys[KEY_RIGHT].repeatTick = NORMAL_REPEAT_TICK;
     keys[KEY_ENTER].repeatTick = NORMAL_REPEAT_TICK;
     keys[KEY_SPACE].repeatTick = NORMAL_REPEAT_TICK;
-
-    loadConfig ();
+    keys[KEY_PLUS].repeatTick = NORMAL_REPEAT_TICK;
+    keys[KEY_MINUS].repeatTick = NORMAL_REPEAT_TICK;
 
     return TRUE;
 }
@@ -655,23 +658,63 @@ void scrollScriptDown(wrappedScript_t * aWrappedScript, int lineCount)
  */
 void handleMovement (void)
 {
-    if (rightPressed && rightChanged)
+    bool ok;
+    bool loadFontWrap = FALSE;
+
+    if (IS_PRESSED_CHANGED(KEY_RIGHT))
     {
         /* Right */
+        if (config.auto_scroll_speed < 255)
+        {
+            config.auto_scroll_speed++;
+        }
     }
-    else if (leftPressed && leftChanged)
+    else if (IS_PRESSED_CHANGED(KEY_LEFT))
     {
         /* Left */
+        if (config.auto_scroll_speed > 0)
+        {
+            config.auto_scroll_speed--;
+        }
     }
-    if (upPressed && upChanged)
+    if (IS_PRESSED_CHANGED(KEY_PLUS))
+    {
+        if (config.ttf_size < 100)
+        {
+            config.ttf_size++;
+            loadFontWrap = TRUE;
+        }
+    }
+    else if (IS_PRESSED_CHANGED(KEY_MINUS))
+    {
+        if (config.ttf_size > 1)
+        {
+            config.ttf_size--;
+            loadFontWrap = TRUE;
+        }
+    }
+    if (IS_PRESSED_CHANGED(KEY_UP))
     {
         /* Scroll script up */
         scrollScriptUp(&wrappedScript, config.scroll_line_count);
     }
-    else if (downPressed && downChanged)
+    else if (IS_PRESSED_CHANGED(KEY_DOWN))
     {
         /* Scroll script down */
         scrollScriptDown(&wrappedScript, config.scroll_line_count);
+    }
+
+    if (loadFontWrap)
+    {
+        printf("Font size: %i\n", config.ttf_size);
+        ok = loadFont(config.ttf_file_path, config.ttf_size, &wrappedScript);
+        if (ok)
+        {
+            wrapScript(scriptBuffer,
+                       (float)config.video_size_x_px * config.text_width_percent / 100.0f,
+                       (float)config.video_size_y_px * config.text_height_percent / 100.0f,
+                       &wrappedScript);
+        }
     }
 }
 
@@ -688,8 +731,7 @@ void handleMainStateMachine (void)
     {
         case STATE_intro:
             introTimer--;
-            if ((enterPressed && enterChanged)
-                    || (spacePressed && spaceChanged)
+            if (IS_PRESSED_CHANGED(KEY_ENTER) || IS_PRESSED_CHANGED(KEY_SPACE)
                     || !introTimer)
             {
                 main_state_machine = STATE_load_script;
@@ -706,7 +748,7 @@ void handleMainStateMachine (void)
             ok = loadFont(config.ttf_file_path, config.ttf_size, &wrappedScript);
             if (ok)
             {
-                ok = loadScript(scriptFilePath, &scriptBuffer);
+                ok = loadScript(config.script_file_path, &scriptBuffer);
             }
             if (ok)
             {
@@ -736,8 +778,7 @@ void handleMainStateMachine (void)
             break;
         case STATE_running:
             handleMovement ();
-            if ((enterPressed && enterChanged)
-                    || (spacePressed && spaceChanged))
+            if (IS_PRESSED_CHANGED(KEY_ENTER) || IS_PRESSED_CHANGED(KEY_SPACE))
             {
                 main_state_machine = STATE_paused;
             }
@@ -750,8 +791,7 @@ void handleMainStateMachine (void)
             break;
         case STATE_paused:
             handleMovement();
-            if ((enterPressed && enterChanged)
-                    || (spacePressed && spaceChanged))
+            if (IS_PRESSED_CHANGED(KEY_ENTER) || IS_PRESSED_CHANGED(KEY_SPACE))
             {
                 main_state_machine = STATE_running;
             }
@@ -762,8 +802,7 @@ void handleMainStateMachine (void)
             }
             break;
         case STATE_end:
-            if ((enterPressed && enterChanged)
-                    || (spacePressed && spaceChanged))
+            if (IS_PRESSED_CHANGED(KEY_ENTER) || IS_PRESSED_CHANGED(KEY_SPACE))
             {
                 /* Restart teleprompter */
                 introTimer = DEFAULT_INTRO_TIMER;
@@ -856,6 +895,14 @@ void key_task()
                 case SDLK_RIGHT:
                     key_pressed(KEY_RIGHT, TRUE);
                     break;
+                case SDLK_PLUS:
+                case SDLK_KP_PLUS:
+                    key_pressed(KEY_PLUS, TRUE);
+                    break;
+                case SDLK_MINUS:
+                case SDLK_KP_MINUS:
+                    key_pressed(KEY_MINUS, TRUE);
+                    break;
                 case SDLK_RETURN:
                 case SDLK_KP_ENTER:
                     key_pressed(KEY_ENTER, TRUE);
@@ -885,6 +932,14 @@ void key_task()
                     break;
                 case SDLK_RIGHT:
                     key_pressed(KEY_RIGHT, FALSE);
+                    break;
+                case SDLK_PLUS:
+                case SDLK_KP_PLUS:
+                    key_pressed(KEY_PLUS, FALSE);
+                    break;
+                case SDLK_MINUS:
+                case SDLK_KP_MINUS:
+                    key_pressed(KEY_MINUS, FALSE);
                     break;
                 case SDLK_RETURN:
                 case SDLK_KP_ENTER:
@@ -940,7 +995,7 @@ void done (void)
     if (wrappedScript.wrappedScriptList.first)
     {
         printf("Releasing linked list... ");
-        freeLinkedList(wrappedScript.wrappedScriptList.first);
+        freeLinkedList(&wrappedScript.wrappedScriptList);
         printf("Done\n");
     }
 

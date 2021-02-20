@@ -68,21 +68,17 @@ linkedListElement_t* freeElement (linkedListElement_t* aLinkedList)
  * @brief freeLinkedList
  * @param aFirstLinkedList
  */
-void freeLinkedList (linkedListElement_t* aFirstLinkedList)
+void freeLinkedList (linkedList_t* aLinkedList)
 {
-    linkedListElement_t* linkedList = aFirstLinkedList;
-    bool_t end = FALSE;
-    bool_t first = TRUE;
+    linkedListElement_t* linkedList = aLinkedList->first;
 
-    while (linkedList && !end)
+    while (linkedList)
     {
-        if (!first && linkedList == aFirstLinkedList)
-        {
-            end = TRUE;
-        }
         linkedList = freeElement (linkedList);
-        first = FALSE;
     }
+    aLinkedList->first = NULL;
+    aLinkedList->last = NULL;
+    aLinkedList->actual = NULL;
 }
 
 /**

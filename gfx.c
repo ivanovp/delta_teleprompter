@@ -68,6 +68,8 @@ SDL_Surface * loadImage(const char* filename)
 
 void printCommon (void)
 {
+    SDL_Rect sdl_rect;
+    Uint32 background_color;
     char s[64];
 
 #if 0
@@ -86,6 +88,14 @@ void printCommon (void)
     }
     else if (TELEPROMPTER_IS_PAUSED())
     {
+        background_color = SDL_MapRGB(screen->format, config.background_color.r, config.background_color.g, config.background_color.b);
+
+        sdl_rect.x = 0;
+        sdl_rect.y = 0;
+        sdl_rect.w = config.video_size_x_px;
+        sdl_rect.h = TEXT_Y(2) + FONT_NORMAL_SIZE_Y_PX;
+        SDL_FillRect(screen, &sdl_rect, background_color);
+
         gfx_font_print(TEXT_X(0), TEXT_Y(0), "** PAUSED **");
         snprintf (s, sizeof (s), "Delta Teleprompter v%i.%i.%i", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
         gfx_font_print(TEXT_X(0), TEXT_Y(1), s);
@@ -170,7 +180,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
     SDL_FillRect(screen, &sdl_rect, background_color);
 
     sdl_rect.x = 0;
-    sdl_rect.y = config->video_size_y_px - y_hide_px - 1;
+    sdl_rect.y = config->video_size_y_px - y_hide_px;
     sdl_rect.w = config->video_size_x_px;
     sdl_rect.h = y_hide_px;
     SDL_FillRect(screen, &sdl_rect, background_color);
@@ -183,8 +193,8 @@ void drawScreen (void)
     // Restore background
     SDL_BlitSurface( background, NULL, screen, NULL );
 
-    printCommon ();
     drawScript(&wrappedScript);
+    printCommon ();
 
     SDL_Flip( screen );
 }

@@ -33,7 +33,7 @@ typedef struct
 
 linkedListElement_t* allocElement (void* aItem, linkedListElement_t* aPrev);
 linkedListElement_t* freeElement (linkedListElement_t* aLinkedList);
-void freeLinkedList (linkedListElement_t* aFirstLinkedList);
+void freeLinkedList (linkedList_t* aLinkedList);
 bool_t addScriptElement(char * aText, linkedList_t * aLinkedList);
 
 #endif /* INCLUDE_COMMON_H */
