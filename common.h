@@ -59,6 +59,7 @@ typedef enum
 {
     STATE_undefined,            /**< This shall not be used! */
     STATE_intro,                /**< Show info text. */
+    STATE_help,                 /**< Show help. */
     STATE_load_script,          /**< Load script if it has not already loaded. */
     STATE_load_script_wait,
     STATE_running,              /**< Teleprompter shows text */

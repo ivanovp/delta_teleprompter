@@ -35,7 +35,7 @@
 #define CONFIG_DIR                  "/.delta_teleprompter"
 #define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
 
-#define MAX_KEYS                    15
+#define MAX_KEYS                    22
 #define KEY_UP                      0
 #define KEY_DOWN                    1
 #define KEY_LEFT                    2
@@ -46,11 +46,18 @@
 #define KEY_MINUS                   7
 #define KEY_HOME                    8
 #define KEY_END                     9
-#define KEY_F5                      10
-#define KEY_F6                      11
-#define KEY_F7                      12
-#define KEY_F8                      13
-#define KEY_F11                     14
+#define KEY_F1                      10
+#define KEY_F2                      11
+#define KEY_F3                      12
+#define KEY_F4                      13
+#define KEY_F5                      14
+#define KEY_F6                      15
+#define KEY_F7                      16
+#define KEY_F8                      17
+#define KEY_F9                      18
+#define KEY_F10                     19
+#define KEY_F11                     20
+#define KEY_F12                     21
 
 #define FAST_REPEAT_TICK            150
 #define NORMAL_REPEAT_TICK          250
@@ -85,9 +92,14 @@ const char* info[] =
     "conditions; see LICENSE for details.",
     "",
     "During play you can use these buttons:",
-    "ENTER: Pause text",
+    "ENTER/SPACE: Pause text",
     "ESCAPE: Exit",
-    "Left/right/up/down: Move",
+    "Up/Down: Scroll text",
+    "Left/Right: Change speed of scrolling",
+    "+/-: Increase/decrease font size",
+    "F5/F6: Descrease/increase text width",
+    "F7/F8: Descrease/increase text height",
+    "F11: Toggle fullscreen",
     ""
     "Press 'ENTER' to start teleprompter."
 };
@@ -744,7 +756,7 @@ void handleMovement (void)
     }
     else if (IS_PRESSED_CHANGED(KEY_MINUS))
     {
-        if (config.ttf_size > 1)
+        if (config.ttf_size > 6)
         {
             config.ttf_size--;
             loadFontWrap = TRUE;
@@ -811,13 +823,25 @@ void handleMovement (void)
     }
 }
 
+void printHelp(void)
+{
+    uint8_t i;
+
+    SDL_BlitSurface(background, NULL, screen, NULL);
+    uint16_t y_center = config.video_size_y_px / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(info) / sizeof(info[0]) / 2);
+    for (i = 0; i < sizeof(info) / sizeof(info[0]); i++)
+    {
+        gfx_font_print_center(TEXT_Y(y_center + i), (char*) info[i]);
+    }
+    SDL_Flip(screen);
+}
+
 /**
  * @brief handle_main_state_machine
  * Check inputs and change state machine if it is necessary.
  */
 void handleMainStateMachine (void)
 {
-    uint8_t i;
     bool    ok;
 
     switch (main_state_machine)
@@ -829,13 +853,15 @@ void handleMainStateMachine (void)
             {
                 main_state_machine = STATE_load_script;
             }
-            SDL_BlitSurface(background, NULL, screen, NULL);
-            uint16_t y_center = config.video_size_y_px / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(info) / sizeof(info[0]) / 2);
-            for (i = 0; i < sizeof(info) / sizeof(info[0]); i++)
+            printHelp();
+            break;
+        case STATE_help:
+            if (IS_PRESSED_CHANGED(KEY_ENTER) || IS_PRESSED_CHANGED(KEY_SPACE)
+                    || IS_PRESSED_CHANGED(KEY_F1))
             {
-                gfx_font_print_center(TEXT_Y(y_center + i), (char*) info[i]);
+                main_state_machine = main_state_machine_next;
             }
-            SDL_Flip(screen);
+            printHelp();
             break;
         case STATE_load_script:
             ok = loadFont(config.ttf_file_path, config.ttf_size, &wrappedScript);
@@ -876,6 +902,11 @@ void handleMainStateMachine (void)
             {
                 main_state_machine = STATE_paused;
             }
+            if (IS_PRESSED_CHANGED(KEY_F1))
+            {
+                main_state_machine = STATE_help;
+                main_state_machine_next = STATE_running;
+            }
             drawScreen ();
             if (wrappedScript.isEnd)
             {
@@ -887,6 +918,11 @@ void handleMainStateMachine (void)
             if (IS_PRESSED_CHANGED(KEY_ENTER) || IS_PRESSED_CHANGED(KEY_SPACE))
             {
                 main_state_machine = STATE_running;
+            }
+            if (IS_PRESSED_CHANGED(KEY_F1))
+            {
+                main_state_machine = STATE_help;
+                main_state_machine_next = STATE_paused;
             }
             drawScreen ();
             if (wrappedScript.isEnd)
@@ -901,6 +937,11 @@ void handleMainStateMachine (void)
                 introTimer = DEFAULT_INTRO_TIMER;
                 loadScriptTimer = DEFAULT_LOAD_SCRIPT_TIMER;
                 main_state_machine = STATE_load_script;
+            }
+            if (IS_PRESSED_CHANGED(KEY_F1))
+            {
+                main_state_machine = STATE_help;
+                main_state_machine_next = STATE_end;
             }
             drawScreen ();
             break;
@@ -995,6 +1036,13 @@ void eventHandler()
                 case SDLK_RIGHT:
                     key_pressed(KEY_RIGHT, TRUE);
                     break;
+                case SDLK_RETURN:
+                case SDLK_KP_ENTER:
+                    key_pressed(KEY_ENTER, TRUE);
+                    break;
+                case SDLK_SPACE:
+                    key_pressed(KEY_SPACE, TRUE);
+                    break;
                 case SDLK_PLUS:
                 case SDLK_KP_PLUS:
                     key_pressed(KEY_PLUS, TRUE);
@@ -1003,12 +1051,17 @@ void eventHandler()
                 case SDLK_KP_MINUS:
                     key_pressed(KEY_MINUS, TRUE);
                     break;
-                case SDLK_RETURN:
-                case SDLK_KP_ENTER:
-                    key_pressed(KEY_ENTER, TRUE);
+                case SDLK_F1:
+                    key_pressed(KEY_F1, TRUE);
                     break;
-                case SDLK_SPACE:
-                    key_pressed(KEY_SPACE, TRUE);
+                case SDLK_F2:
+                    key_pressed(KEY_F2, TRUE);
+                    break;
+                case SDLK_F3:
+                    key_pressed(KEY_F3, TRUE);
+                    break;
+                case SDLK_F4:
+                    key_pressed(KEY_F4, TRUE);
                     break;
                 case SDLK_F5:
                     key_pressed(KEY_F5, TRUE);
@@ -1022,8 +1075,17 @@ void eventHandler()
                 case SDLK_F8:
                     key_pressed(KEY_F8, TRUE);
                     break;
+                case SDLK_F9:
+                    key_pressed(KEY_F9, TRUE);
+                    break;
+                case SDLK_F10:
+                    key_pressed(KEY_F10, TRUE);
+                    break;
                 case SDLK_F11:
                     key_pressed(KEY_F11, TRUE);
+                    break;
+                case SDLK_F12:
+                    key_pressed(KEY_F12, TRUE);
                     break;
                 case SDLK_ESCAPE:
                     teleprompterRunning = FALSE;
@@ -1048,6 +1110,13 @@ void eventHandler()
                 case SDLK_RIGHT:
                     key_pressed(KEY_RIGHT, FALSE);
                     break;
+                case SDLK_RETURN:
+                case SDLK_KP_ENTER:
+                    key_pressed(KEY_ENTER, FALSE);
+                    break;
+                case SDLK_SPACE:
+                    key_pressed(KEY_SPACE, FALSE);
+                    break;
                 case SDLK_PLUS:
                 case SDLK_KP_PLUS:
                     key_pressed(KEY_PLUS, FALSE);
@@ -1056,12 +1125,17 @@ void eventHandler()
                 case SDLK_KP_MINUS:
                     key_pressed(KEY_MINUS, FALSE);
                     break;
-                case SDLK_RETURN:
-                case SDLK_KP_ENTER:
-                    key_pressed(KEY_ENTER, FALSE);
+                case SDLK_F1:
+                    key_pressed(KEY_F1, FALSE);
                     break;
-                case SDLK_SPACE:
-                    key_pressed(KEY_SPACE, FALSE);
+                case SDLK_F2:
+                    key_pressed(KEY_F2, FALSE);
+                    break;
+                case SDLK_F3:
+                    key_pressed(KEY_F3, FALSE);
+                    break;
+                case SDLK_F4:
+                    key_pressed(KEY_F4, FALSE);
                     break;
                 case SDLK_F5:
                     key_pressed(KEY_F5, FALSE);
@@ -1075,8 +1149,17 @@ void eventHandler()
                 case SDLK_F8:
                     key_pressed(KEY_F8, FALSE);
                     break;
+                case SDLK_F9:
+                    key_pressed(KEY_F9, FALSE);
+                    break;
+                case SDLK_F10:
+                    key_pressed(KEY_F10, FALSE);
+                    break;
                 case SDLK_F11:
                     key_pressed(KEY_F11, FALSE);
+                    break;
+                case SDLK_F12:
+                    key_pressed(KEY_F12, FALSE);
                     break;
                 case SDLK_ESCAPE:
                     break;
