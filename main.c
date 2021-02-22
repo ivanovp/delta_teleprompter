@@ -35,7 +35,7 @@
 #define CONFIG_DIR                  "/.delta_teleprompter"
 #define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
 
-#define MAX_KEYS                    11
+#define MAX_KEYS                    15
 #define KEY_UP                      0
 #define KEY_DOWN                    1
 #define KEY_LEFT                    2
@@ -46,7 +46,11 @@
 #define KEY_MINUS                   7
 #define KEY_HOME                    8
 #define KEY_END                     9
-#define KEY_F11                     10
+#define KEY_F5                      10
+#define KEY_F6                      11
+#define KEY_F7                      12
+#define KEY_F8                      13
+#define KEY_F11                     14
 
 #define FAST_REPEAT_TICK            150
 #define NORMAL_REPEAT_TICK          250
@@ -756,6 +760,38 @@ void handleMovement (void)
         /* Scroll script down */
         scrollScriptDown(&wrappedScript, config.scroll_line_count);
     }
+    if (IS_PRESSED_CHANGED(KEY_F5))
+    {
+        if (config.text_width_percent > 10)
+        {
+            config.text_width_percent -= 5;
+            loadFontWrap = TRUE;
+        }
+    }
+    if (IS_PRESSED_CHANGED(KEY_F6))
+    {
+        if (config.text_width_percent < 100)
+        {
+            config.text_width_percent += 5;
+            loadFontWrap = TRUE;
+        }
+    }
+    if (IS_PRESSED_CHANGED(KEY_F7))
+    {
+        if (config.text_height_percent > 10)
+        {
+            config.text_height_percent -= 5;
+            wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
+        }
+    }
+    if (IS_PRESSED_CHANGED(KEY_F8))
+    {
+        if (config.text_height_percent < 100)
+        {
+            config.text_height_percent += 5;
+            wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
+        }
+    }
     if (IS_PRESSED_CHANGED(KEY_F11))
     {
         config.full_screen = !config.full_screen;
@@ -974,6 +1010,18 @@ void eventHandler()
                 case SDLK_SPACE:
                     key_pressed(KEY_SPACE, TRUE);
                     break;
+                case SDLK_F5:
+                    key_pressed(KEY_F5, TRUE);
+                    break;
+                case SDLK_F6:
+                    key_pressed(KEY_F6, TRUE);
+                    break;
+                case SDLK_F7:
+                    key_pressed(KEY_F7, TRUE);
+                    break;
+                case SDLK_F8:
+                    key_pressed(KEY_F8, TRUE);
+                    break;
                 case SDLK_F11:
                     key_pressed(KEY_F11, TRUE);
                     break;
@@ -1014,6 +1062,18 @@ void eventHandler()
                     break;
                 case SDLK_SPACE:
                     key_pressed(KEY_SPACE, FALSE);
+                    break;
+                case SDLK_F5:
+                    key_pressed(KEY_F5, FALSE);
+                    break;
+                case SDLK_F6:
+                    key_pressed(KEY_F6, FALSE);
+                    break;
+                case SDLK_F7:
+                    key_pressed(KEY_F7, FALSE);
+                    break;
+                case SDLK_F8:
+                    key_pressed(KEY_F8, FALSE);
                     break;
                 case SDLK_F11:
                     key_pressed(KEY_F11, FALSE);
