@@ -65,6 +65,18 @@
 #define DEFAULT_INTRO_TIMER         250
 #define DEFAULT_LOAD_SCRIPT_TIMER   250
 
+#define MAX_FONT_SIZE               200
+#define MIN_FONT_SIZE               6
+#define FONT_SIZE_STEP              2
+
+#define MIN_TEXT_WIDTH_PERCENT      100
+#define MAX_TEXT_WIDTH_PERCENT      10
+#define TEXT_WIDTH_PERCENT_STEP     5
+
+#define MIN_TEXT_HEIGHT_PERCENT     100
+#define MAX_TEXT_HEIGHT_PERCENT     10
+#define TEXT_HEIGHT_PERCENT_STEP    5
+
 typedef struct
 {
   bool_t pressed;
@@ -92,8 +104,8 @@ const char* info[] =
     "conditions; see LICENSE for details.",
     "",
     "During play you can use these buttons:",
-    "ENTER/SPACE: Pause text",
-    "ESCAPE: Exit",
+    "Enter/Space: Pause text",
+    "Escape: Exit",
     "Up/Down: Scroll text",
     "Left/Right: Change speed of scrolling",
     "+/-: Increase/decrease font size",
@@ -101,7 +113,7 @@ const char* info[] =
     "F7/F8: Descrease/increase text height",
     "F11: Toggle fullscreen",
     ""
-    "Press 'ENTER' to start teleprompter."
+    "Press 'Enter' to start teleprompter."
 };
 
 const char *homeDir;
@@ -718,10 +730,10 @@ void scrollScriptDown(wrappedScript_t * aWrappedScript, int lineCount)
 }
 
 /**
- * @brief handleMovement
- * Handle button presses and move figure according to that.
+ * @brief handleTeleprompterKeys
+ * Handle button presses and move text according to that.
  */
-void handleMovement (void)
+void handleTeleprompterKeys (void)
 {
     bool ok;
     bool loadFontWrap = FALSE;
@@ -748,17 +760,17 @@ void handleMovement (void)
     }
     if (IS_PRESSED_CHANGED(KEY_PLUS))
     {
-        if (config.ttf_size < 100)
+        if (config.ttf_size < MAX_FONT_SIZE)
         {
-            config.ttf_size++;
+            config.ttf_size += FONT_SIZE_STEP;
             loadFontWrap = TRUE;
         }
     }
     else if (IS_PRESSED_CHANGED(KEY_MINUS))
     {
-        if (config.ttf_size > 6)
+        if (config.ttf_size > MIN_FONT_SIZE)
         {
-            config.ttf_size--;
+            config.ttf_size -= FONT_SIZE_STEP;
             loadFontWrap = TRUE;
         }
     }
@@ -774,33 +786,33 @@ void handleMovement (void)
     }
     if (IS_PRESSED_CHANGED(KEY_F5))
     {
-        if (config.text_width_percent > 10)
+        if (config.text_width_percent > MIN_TEXT_WIDTH_PERCENT)
         {
-            config.text_width_percent -= 5;
+            config.text_width_percent -= TEXT_WIDTH_PERCENT_STEP;
             loadFontWrap = TRUE;
         }
     }
     if (IS_PRESSED_CHANGED(KEY_F6))
     {
-        if (config.text_width_percent < 100)
+        if (config.text_width_percent < MAX_TEXT_WIDTH_PERCENT)
         {
-            config.text_width_percent += 5;
+            config.text_width_percent += TEXT_WIDTH_PERCENT_STEP;
             loadFontWrap = TRUE;
         }
     }
     if (IS_PRESSED_CHANGED(KEY_F7))
     {
-        if (config.text_height_percent > 10)
+        if (config.text_height_percent > MIN_TEXT_HEIGHT_PERCENT)
         {
-            config.text_height_percent -= 5;
+            config.text_height_percent -= TEXT_HEIGHT_PERCENT_STEP;
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
     }
     if (IS_PRESSED_CHANGED(KEY_F8))
     {
-        if (config.text_height_percent < 100)
+        if (config.text_height_percent < MAX_TEXT_HEIGHT_PERCENT)
         {
-            config.text_height_percent += 5;
+            config.text_height_percent += TEXT_HEIGHT_PERCENT_STEP;
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
     }
@@ -897,7 +909,7 @@ void handleMainStateMachine (void)
             }
             break;
         case STATE_running:
-            handleMovement ();
+            handleTeleprompterKeys ();
             if (IS_PRESSED_CHANGED(KEY_ENTER) || IS_PRESSED_CHANGED(KEY_SPACE))
             {
                 main_state_machine = STATE_paused;
@@ -914,7 +926,7 @@ void handleMainStateMachine (void)
             }
             break;
         case STATE_paused:
-            handleMovement();
+            handleTeleprompterKeys();
             if (IS_PRESSED_CHANGED(KEY_ENTER) || IS_PRESSED_CHANGED(KEY_SPACE))
             {
                 main_state_machine = STATE_running;
