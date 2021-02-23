@@ -145,8 +145,9 @@ bool_t       teleprompterRunning   = TRUE;
 main_state_machine_t main_state_machine = STATE_undefined;
 main_state_machine_t main_state_machine_next = STATE_undefined;
 
-// The images
+// The surfaces (the sceen itself, background, etc.)
 SDL_Surface* background = NULL;
+SDL_Surface* alphaSurface = NULL;
 SDL_Surface* screen = NULL;
 bool_t textInputIsStarted = FALSE;
 char * text = NULL;
@@ -567,10 +568,26 @@ void initScreen(void)
     {
         SDL_FreeSurface(background);
     }
+    if (alphaSurface)
+    {
+        SDL_FreeSurface(alphaSurface);
+    }
     // Create background image
     background = SDL_CreateRGBSurface(SDL_SWSURFACE,
                                       config.video_size_x_px, config.video_size_y_px, config.video_depth_bit,
                                       config.background_color.r, config.background_color.g, config.background_color.b, 0);
+
+    alphaSurface = SDL_CreateRGBSurface(SDL_SRCALPHA,
+                                        config.video_size_x_px, config.video_size_y_px, config.video_depth_bit,
+                                        0, 0, 0, 0xFF);
+
+#if 0
+    uint16_t y;
+    for (y = 0; y < 100; y++)
+    {
+        lineRGBA(alphaSurface, 0, y, config.video_size_x_px - 1, y, 0xFF, 0xFF, 0xFF, y);
+    }
+#endif
 
     //Apply image to screen
     SDL_BlitSurface(background, NULL, screen, NULL);
@@ -1228,8 +1245,9 @@ void done (void)
 
     TTF_CloseFont(wrappedScript.ttf_font);
 
-    //Free the loaded image
+    //Free the surfaces
     SDL_FreeSurface(background);
+    SDL_FreeSurface(alphaSurface);
     SDL_FreeSurface(screen);
 
     // Quit TTF

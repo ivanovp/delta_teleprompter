@@ -50,6 +50,7 @@
 #define gfx_font_print_center(y,s)              stringRGBA(screen, screen->w / 2 - strlen(s) / 2 * FONT_NORMAL_SIZE_X_PX, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
 
 extern SDL_Surface* background;
+extern SDL_Surface* alphaSurface;
 extern SDL_Surface* screen;
 
 void printCommon (void);
