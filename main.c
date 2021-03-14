@@ -636,8 +636,17 @@ bool_t init (void)
 
     videoInfo = SDL_GetVideoInfo();
 
-    printf("Actual screen size: %i x %i\n", videoInfo->current_w, videoInfo->current_h);
-    printf("Video memory: %i KiB\n", videoInfo->video_mem);
+    printf("Hardware surface available: %i\n",      videoInfo->hw_available);	/**< Flag: Can you create hardware surfaces? */
+    printf("Window manager available: %i\n",        videoInfo->wm_available);	/**< Flag: Can you talk to a window manager? */
+    printf("Accelerated blits HW->HW: %i\n",        videoInfo->blit_hw     );	/**< Flag: Accelerated blits HW --> HW */
+    printf("Accelerated blits with Colorkey: %i\n", videoInfo->blit_hw_CC  );	/**< Flag: Accelerated blits with Colorkey */
+    printf("Accelerated blits with Alpha: %i\n",    videoInfo->blit_hw_A   );	/**< Flag: Accelerated blits with Alpha */
+    printf("Accelerated blits SW->HW: %i\n",        videoInfo->blit_sw     );	/**< Flag: Accelerated blits SW --> HW */
+    printf("Accelerated blits with Colorkey: %i\n", videoInfo->blit_sw_CC  );	/**< Flag: Accelerated blits with Colorkey */
+    printf("Accelerated blits with Alpha: %i\n",    videoInfo->blit_sw_A   );	/**< Flag: Accelerated blits with Alpha */
+    printf("Accelerated color fill: %i\n",          videoInfo->blit_fill   );	/**< Flag: Accelerated color fill */
+    printf("Actual screen size: %i x %i\n",         videoInfo->current_w, videoInfo->current_h);
+    printf("Video memory: %i KiB\n",                videoInfo->video_mem);
 
     printf("Configuration version: %i\n", config.version);
     printf("Script file path:      %s\n", config.script_file_path);
