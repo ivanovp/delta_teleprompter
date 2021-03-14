@@ -35,7 +35,6 @@
 #define CONFIG_DIR                  "/.delta_teleprompter"
 #define CONFIG_FILENAME             CONFIG_DIR "/teleprompter.bin"
 
-#define MAX_KEYS                    22
 #define KEY_UP                      0
 #define KEY_DOWN                    1
 #define KEY_LEFT                    2
@@ -58,6 +57,7 @@
 #define KEY_F10                     19
 #define KEY_F11                     20
 #define KEY_F12                     21
+#define KEY_COUNT                   22 /* not a real key, just to count keys */
 
 #define FAST_REPEAT_TICK            150
 #define NORMAL_REPEAT_TICK          250
@@ -69,12 +69,12 @@
 #define MIN_FONT_SIZE               6
 #define FONT_SIZE_STEP              2
 
-#define MIN_TEXT_WIDTH_PERCENT      100
-#define MAX_TEXT_WIDTH_PERCENT      10
+#define MAX_TEXT_WIDTH_PERCENT      100
+#define MIN_TEXT_WIDTH_PERCENT      10
 #define TEXT_WIDTH_PERCENT_STEP     5
 
-#define MIN_TEXT_HEIGHT_PERCENT     100
-#define MAX_TEXT_HEIGHT_PERCENT     10
+#define MAX_TEXT_HEIGHT_PERCENT     100
+#define MIN_TEXT_HEIGHT_PERCENT     10
 #define TEXT_HEIGHT_PERCENT_STEP    5
 
 typedef struct
@@ -85,7 +85,7 @@ typedef struct
   uint32_t repeatTick;
 } mykey_t;
 
-mykey_t      keys[MAX_KEYS] = { 0 };
+mykey_t      keys[KEY_COUNT] = { 0 };
 
 #define IS_PRESSED(key)             keys[(key)].pressed
 #define IS_CHANGED(key)             keys[(key)].changed
@@ -581,7 +581,7 @@ void initScreen(void)
                                         config.video_size_x_px, config.video_size_y_px, config.video_depth_bit,
                                         0, 0, 0, 0xFF);
 
-#if 0
+#if 1
     uint16_t y;
     for (y = 0; y < 100; y++)
     {
@@ -774,6 +774,7 @@ void handleTeleprompterKeys (void)
             initTimer();
         }
         printf("Auto scroll speed: %i\n", config.auto_scroll_speed);
+        drawInfoScreen("Auto scroll speed: %i\n", config.auto_scroll_speed);
     }
     if (IS_PRESSED_CHANGED(KEY_PLUS))
     {
@@ -808,6 +809,8 @@ void handleTeleprompterKeys (void)
             config.text_width_percent -= TEXT_WIDTH_PERCENT_STEP;
             loadFontWrap = TRUE;
         }
+        printf("Text width: %i%%\n", config.text_width_percent);
+        drawInfoScreen("Text width: %i%%", config.text_width_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F6))
     {
@@ -816,6 +819,8 @@ void handleTeleprompterKeys (void)
             config.text_width_percent += TEXT_WIDTH_PERCENT_STEP;
             loadFontWrap = TRUE;
         }
+        printf("Text width: %i%%\n", config.text_width_percent);
+        drawInfoScreen("Text width: %i%%", config.text_width_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F7))
     {
@@ -824,6 +829,8 @@ void handleTeleprompterKeys (void)
             config.text_height_percent -= TEXT_HEIGHT_PERCENT_STEP;
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
+        printf("Text height: %i%%\n", config.text_height_percent);
+        drawInfoScreen("Text height: %i%%\n", config.text_height_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F8))
     {
@@ -832,6 +839,8 @@ void handleTeleprompterKeys (void)
             config.text_height_percent += TEXT_HEIGHT_PERCENT_STEP;
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
+        printf("Text height: %i%%\n", config.text_height_percent);
+        drawInfoScreen("Text height: %i%%\n", config.text_height_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F11))
     {
@@ -983,7 +992,7 @@ void handleMainStateMachine (void)
 
 void key_pressed(uint8_t key_index, bool_t pressed)
 {
-    if (key_index < MAX_KEYS)
+    if (key_index < KEY_COUNT)
     {
         keys[key_index].changed = TRUE;
         keys[key_index].pressed = pressed;
@@ -1002,12 +1011,13 @@ void key_pressed(uint8_t key_index, bool_t pressed)
     }
 }
 
-void eventHandler()
+bool_t eventHandler()
 {
     int i;
     SDL_Event event;
+    bool_t    eventOccurred = FALSE;
 
-    for (i = 0; i < MAX_KEYS; i++)
+    for (i = 0; i < KEY_COUNT; i++)
     {
         keys[i].changed = FALSE;
         if (keys[i].pressed && keys[i].pressTick < SDL_GetTicks())
@@ -1015,6 +1025,7 @@ void eventHandler()
             /* Simulate key has just pressed */
             keys[i].changed = TRUE;
             keys[i].pressTick = SDL_GetTicks() + keys[i].repeatTick;
+            eventOccurred = TRUE;
         }
     }
 
@@ -1029,6 +1040,7 @@ void eventHandler()
         }
         else if (event.type == SDL_KEYDOWN)
         {
+            eventOccurred = TRUE;
             if (textInputIsStarted)
             {
               uint32_t len = strnlen(text, textLength);
@@ -1125,6 +1137,7 @@ void eventHandler()
         }
         else if (event.type == SDL_KEYUP)
         {
+            /* Releasing key should not be an event as it disturbs drawInfoScreen() */
             switch (event.key.keysym.sym)
             {
                 case SDLK_UP:
@@ -1198,10 +1211,13 @@ void eventHandler()
         }
         else if (event.type == SDL_QUIT) /* If the user has Xed out the window */
         {
+            eventOccurred = TRUE;
             /* Quit the program */
             teleprompterRunning = FALSE;
         }
     }
+
+    return eventOccurred;
 }
 
 /**

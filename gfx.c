@@ -201,13 +201,30 @@ void drawScreen (void)
 
 /**
  * Prints message in the center of screen.
+ * Printf function which prints to middle of screen.
  * Note: display shall be initialized to use this function!
  *
- * @param aInfo Text to print.
+ * Example:
+<pre>
+drawInfoScreen ("Number: %02i\r\n", number);
+</pre>
+ *
+ * @param fmt Printf format string. Example: "Value: %02i\r\n"
  */
-void drawInfoScreen (const char* aInfo)
+void drawInfoScreen (const char *aFmt, ...)
 {
+    static va_list valist;
+    char buf[128];
+    int  delayCntr = 500;
+
+    va_start (valist, aFmt);
+    vsnprintf (buf, sizeof (buf), aFmt, valist);
+    va_end (valist);
     SDL_BlitSurface( background, NULL, screen, NULL );
-    gfx_font_print_center (screen->h / 2, aInfo);
-    SDL_Flip( screen );
+    gfx_font_print_center (screen->h / 2, buf);
+    SDL_Flip(screen);
+    while (delayCntr-- && !eventHandler())
+    {
+        SDL_Delay(1);
+    }
 }

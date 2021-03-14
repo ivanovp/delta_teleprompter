@@ -96,7 +96,7 @@ extern main_state_machine_t main_state_machine; /* Teleprompter state machine. @
 extern config_t     config; /* Actual configuration. */
 
 bool_t saveConfig (void);
-void eventHandler();
+bool_t eventHandler();
 
 #endif /* INCLUDE_COMMON_H */
 
