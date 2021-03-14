@@ -23,6 +23,31 @@
 #include "linkedlist.h"
 #include "script.h"
 
+const char* helpText[] =
+{
+    "This is Delta Teleprompter.",
+    "",
+    "Copyright (C) Peter Ivanov <ivanovp@gmail.com>, 2021",
+    "Homepage: http://dev.ivanov.eu",
+    "Licence: GPLv3",
+    "",
+    "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.",
+    "This is free software, and you are welcome to redistribute it under certain",
+    "conditions; see LICENSE for details.",
+    "",
+    "During play you can use these buttons:",
+    "Enter/Space: Pause text",
+    "Escape: Exit",
+    "Up/Down: Scroll text",
+    "Left/Right: Change speed of scrolling",
+    "+/-: Increase/decrease font size",
+    "F5/F6: Descrease/increase text width",
+    "F7/F8: Descrease/increase text height",
+    "F11: Toggle fullscreen",
+    ""
+    "Press 'Enter' to start teleprompter."
+};
+
 extern wrappedScript_t wrappedScript;
 
 SDL_Surface * loadImage(const char* filename)
@@ -227,4 +252,21 @@ void drawInfoScreen (const char *aFmt, ...)
     {
         SDL_Delay(1);
     }
+}
+
+/**
+ * @brief drawHelp
+ * Print help text in the center of the screen.
+ */
+void drawHelpScreen(void)
+{
+    uint8_t i;
+
+    SDL_BlitSurface(background, NULL, screen, NULL);
+    uint16_t y_center = config.video_size_y_px / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(helpText) / sizeof(helpText[0]) / 2);
+    for (i = 0; i < sizeof(helpText) / sizeof(helpText[0]); i++)
+    {
+        gfx_font_print_center(TEXT_Y(y_center + i), (char*) helpText[i]);
+    }
+    SDL_Flip(screen);
 }

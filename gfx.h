@@ -56,5 +56,6 @@ extern SDL_Surface* screen;
 void printCommon (void);
 void drawScreen (void);
 void drawInfoScreen (const char *aFmt, ...);
+void drawHelpScreen(void);
 
 #endif /* INCLUDE_GFX_H */

@@ -91,31 +91,6 @@ mykey_t      keys[KEY_COUNT] = { 0 };
 #define IS_CHANGED(key)             keys[(key)].changed
 #define IS_PRESSED_CHANGED(key)     (keys[(key)].pressed && keys[(key)].changed)
 
-const char* info[] =
-{
-    "This is Delta Teleprompter.",
-    "",
-    "Copyright (C) Peter Ivanov <ivanovp@gmail.com>, 2021",
-    "Homepage: http://dev.ivanov.eu",
-    "Licence: GPLv3",
-    "",
-    "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.",
-    "This is free software, and you are welcome to redistribute it under certain",
-    "conditions; see LICENSE for details.",
-    "",
-    "During play you can use these buttons:",
-    "Enter/Space: Pause text",
-    "Escape: Exit",
-    "Up/Down: Scroll text",
-    "Left/Right: Change speed of scrolling",
-    "+/-: Increase/decrease font size",
-    "F5/F6: Descrease/increase text width",
-    "F7/F8: Descrease/increase text height",
-    "F11: Toggle fullscreen",
-    ""
-    "Press 'Enter' to start teleprompter."
-};
-
 const char *homeDir;
 
 /* Default configuration, could be overwritten by loadConfig() */
@@ -197,11 +172,11 @@ void loadConfig (void)
     config_t configTemp;
     char path[256];
 
-    printf("Loading configuration...\n");
+//    printf("Loading configuration...\n");
 
     strncpy(path, homeDir, sizeof(path));
     strncat(path, CONFIG_FILENAME, sizeof(path));
-    printf("%s: %s\n", __FUNCTION__, path);
+//    printf("%s: %s\n", __FUNCTION__, path);
     configFile = fopen (path, "rb");
     if (configFile)
     {
@@ -604,13 +579,190 @@ void initTimer(void)
     autoScrollTimer = SDL_AddTimer(delay, timerCallbackFunc, NULL);
 }
 
+
+void printHelp(const char * cmd)
+{
+    printf("Usage:\n"
+           "%s [-s <script.txt>] [-f <font.ttf>] [-i] [-S <font size>] [-tw <width%%>] [-th <height%%>]\n"
+           "\n"
+           "Switches:\n"
+           "-s or --script: load script to display\n"
+           "-f or --font: load TrueType font to be used to display script\n"
+           "-i or --internal-font: use internal font\n"
+           "-S or --font-size: specify font size\n"
+           "-tw or --text-width-percent: display text width in percent\n"
+           "-th or --text-height-percent: display text height in percent\n"
+           "-vx or --video-size-x: screen size in direction X in pixels. Default: 640.\n"
+           "-vy or --video-size-y: screen size in direction Y in pixels. Default: 480.\n"
+           "-vd or --video-depth-bit: pixel depth in bits. Default: 16.\n"
+           "-bgc or --background-color: background color in RGB format. Default: 0x000000 (black).\n"
+           "-tc or --text-color: text color in RGB format. Default: 0xFFFFFF (white).\n"
+           "-c or --align-center: align text to center. Default.\n"
+           "-l or --align-left: align text to left.\n"
+           "-a or --auto-scroll-speed: specify speed of auto scrolling. Default: 240.\n"
+           "\n"
+           , cmd);
+}
+
+/**
+ * @brief getColor Convert decimal/hexadecimal color to SDL color.
+ *
+ * @param str   RGB color in hexadecimal or decimal format. Example for red: 0xFF0000.
+ * @return SDL color.
+ */
+SDL_Color getSDLColor(const char *str)
+{
+    SDL_Color sdl_color;
+    uint32_t color;
+
+    if (str[0] == '0' && str[1] == 'x')
+    {
+        color = strtol(&str[2], NULL, 16);
+    }
+    else
+    {
+        color = atoi(str);
+    }
+
+    sdl_color.r = (color >> 16) & 0xFF;
+    sdl_color.g = (color >> 8) & 0xFF;
+    sdl_color.b = color & 0xFF;
+
+    return sdl_color;
+}
+
+/**
+ * @brief initArgs Parse command line arguments and change configuration according to that.
+ *
+ * @param argc  Count of arguments.
+ * @param argv  Array of arguments.
+ * @return TRUE: if no error was detected.
+ */
+bool_t initArgs (int argc, char* argv[])
+{
+    uint8_t i;
+    char  * arg;
+    bool_t  ok = TRUE;
+
+    for (i = 1; i < argc; i++)
+    {
+        arg = argv[i];
+        printf("argv: %s\n", arg);
+        if (!strcmp(arg, "-s") || !strcmp(arg, "--script"))
+        {
+            /* Script file path */
+            i++;
+            arg = argv[i];
+            strncpy(config.script_file_path, arg, sizeof(config.script_file_path));
+        }
+        else if (!strcmp(arg, "-f") || !strcmp(arg, "--font"))
+        {
+            /* Font file path */
+            i++;
+            arg = argv[i];
+            strncpy(config.ttf_file_path, arg, sizeof(config.ttf_file_path));
+        }
+        else if (!strcmp(arg, "-i") || !strcmp(arg, "--internal-font"))
+        {
+            /* Use internal font */
+            strncpy(config.ttf_file_path, "", sizeof(config.ttf_file_path));
+        }
+        else if (!strcmp(arg, "-S") || !strcmp(arg, "--font-size"))
+        {
+            /* Font size */
+            i++;
+            arg = argv[i];
+            config.ttf_size = atoi(arg);
+        }
+        else if (!strcmp(arg, "-tw") || !strcmp(arg, "--text-width-percent"))
+        {
+            /* Text width in percent */
+            i++;
+            arg = argv[i];
+            config.text_width_percent = atoi(arg);
+        }
+        else if (!strcmp(arg, "-th") || !strcmp(arg, "--text-height-percent"))
+        {
+            /* Text height in percent */
+            i++;
+            arg = argv[i];
+            config.text_height_percent = atoi(arg);
+        }
+        else if (!strcmp(arg, "-vx") || !strcmp(arg, "--video-size-x"))
+        {
+            /* Video size in X direction */
+            i++;
+            arg = argv[i];
+            config.video_size_x_px = atoi(arg);
+        }
+        else if (!strcmp(arg, "-vy") || !strcmp(arg, "--video-size-y"))
+        {
+            /* Video size in X direction */
+            i++;
+            arg = argv[i];
+            config.video_size_y_px = atoi(arg);
+        }
+        else if (!strcmp(arg, "-vd") || !strcmp(arg, "--video-depth-bit"))
+        {
+            /* Video depth in bits */
+            i++;
+            arg = argv[i];
+            config.video_depth_bit = atoi(arg);
+        }
+        else if (!strcmp(arg, "-bgc") || !strcmp(arg, "--background-color"))
+        {
+            /* Background color */
+            i++;
+            arg = argv[i];
+            config.background_color = getSDLColor(arg);
+        }
+        else if (!strcmp(arg, "-tc") || !strcmp(arg, "--text-color"))
+        {
+            /* Text color */
+            i++;
+            arg = argv[i];
+            config.text_color = getSDLColor(arg);
+        }
+        else if (!strcmp(arg, "-c") || !strcmp(arg, "--align-center"))
+        {
+            /* Align text to center */
+            config.align_center = TRUE;
+        }
+        else if (!strcmp(arg, "-l") || !strcmp(arg, "--align-left"))
+        {
+            /* Align text to left */
+            config.align_center = FALSE;
+        }
+        else if (!strcmp(arg, "-a") || !strcmp(arg, "--auto-scroll-speed"))
+        {
+            /* Speed of automatic text scroll */
+            i++;
+            arg = argv[i];
+            config.auto_scroll_speed = atoi(arg);
+        }
+        else if (!strcmp(arg, "-h") || !strcmp(arg, "--help"))
+        {
+            printHelp(argv[0]);
+            exit(1);
+        }
+        else
+        {
+            printf("ERROR: unknown parameter!\n"
+                   "\n"
+                   "See help: -h\n");
+        }
+    }
+
+    return ok;
+}
+
 /**
  * @brief init
  * Initialize teleprompter.
  *
  * @return TRUE: if successfully initialized. FALSE: error occurred.
  */
-bool_t init (void)
+bool_t init (int argc, char* argv[])
 {
     uint8_t i;
     char    path[256];
@@ -619,6 +771,18 @@ bool_t init (void)
     setlocale(LC_ALL, ""); // FIXME needed?
     srand(time(NULL));
 
+    printf("This is Delta Teleprompter.\n"
+           "\n"
+           "Copyright (C) Peter Ivanov <ivanovp@gmail.com>, 2021\n"
+           "Homepage: http://dev.ivanov.eu\n"
+           "Licence: GPLv3\n"
+           "\n"
+           "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.\n"
+           "This is free software, and you are welcome to redistribute it under certain\n"
+           "conditions; see LICENSE for details.\n"
+           "\n"
+           );
+
     homeDir = getenv ("HOME");
     if (homeDir == NULL)
     {
@@ -626,10 +790,12 @@ bool_t init (void)
     }
     strncpy(path, homeDir, sizeof(path));
     strncat(path, CONFIG_DIR, sizeof(path));
-    printf("%s mkdir: %s\n", __FUNCTION__, path);
+//    printf("%s mkdir: %s\n", __FUNCTION__, path);
     mkdir(path, 0755);
 
     loadConfig ();
+
+    initArgs(argc, argv);
 
     SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO);
 //    SDL_Init(SDL_INIT_EVERYTHING);
@@ -773,6 +939,7 @@ void handleTeleprompterKeys (void)
             initTimer();
         }
         printf("Auto scroll speed: %i\n", config.auto_scroll_speed);
+        drawInfoScreen("Auto scroll speed: %i", config.auto_scroll_speed);
     }
     else if (IS_PRESSED_CHANGED(KEY_LEFT))
     {
@@ -783,7 +950,7 @@ void handleTeleprompterKeys (void)
             initTimer();
         }
         printf("Auto scroll speed: %i\n", config.auto_scroll_speed);
-        drawInfoScreen("Auto scroll speed: %i\n", config.auto_scroll_speed);
+        drawInfoScreen("Auto scroll speed: %i", config.auto_scroll_speed);
     }
     if (IS_PRESSED_CHANGED(KEY_PLUS))
     {
@@ -839,7 +1006,7 @@ void handleTeleprompterKeys (void)
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
         printf("Text height: %i%%\n", config.text_height_percent);
-        drawInfoScreen("Text height: %i%%\n", config.text_height_percent);
+        drawInfoScreen("Text height: %i%%", config.text_height_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F8))
     {
@@ -849,7 +1016,7 @@ void handleTeleprompterKeys (void)
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
         printf("Text height: %i%%\n", config.text_height_percent);
-        drawInfoScreen("Text height: %i%%\n", config.text_height_percent);
+        drawInfoScreen("Text height: %i%%", config.text_height_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F11))
     {
@@ -870,19 +1037,6 @@ void handleTeleprompterKeys (void)
     }
 }
 
-void printHelp(void)
-{
-    uint8_t i;
-
-    SDL_BlitSurface(background, NULL, screen, NULL);
-    uint16_t y_center = config.video_size_y_px / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(info) / sizeof(info[0]) / 2);
-    for (i = 0; i < sizeof(info) / sizeof(info[0]); i++)
-    {
-        gfx_font_print_center(TEXT_Y(y_center + i), (char*) info[i]);
-    }
-    SDL_Flip(screen);
-}
-
 /**
  * @brief handle_main_state_machine
  * Check inputs and change state machine if it is necessary.
@@ -900,7 +1054,7 @@ void handleMainStateMachine (void)
             {
                 main_state_machine = STATE_load_script;
             }
-            printHelp();
+            drawHelpScreen();
             break;
         case STATE_help:
             if (IS_PRESSED_CHANGED(KEY_ENTER) || IS_PRESSED_CHANGED(KEY_SPACE)
@@ -908,7 +1062,7 @@ void handleMainStateMachine (void)
             {
                 main_state_machine = main_state_machine_next;
             }
-            printHelp();
+            drawHelpScreen();
             break;
         case STATE_load_script:
             ok = loadFont(config.ttf_file_path, config.ttf_size, &wrappedScript);
@@ -1286,7 +1440,7 @@ int main(int argc, char* argv[])
     (void)argc;
     (void)argv;
 
-    if (init ())
+    if (init (argc, argv))
     {
         run ();
         done ();
