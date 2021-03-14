@@ -26,7 +26,7 @@
  * @param[in] aItem Linked list item to store.
  * @param[in] aPrev Previous linked list item.
  */
-linkedListElement_t* allocElement (void* aItem, linkedListElement_t* aPrev)
+linkedListElement_t* allocElement (void* aItem, linkedListElement_t* aNext, linkedListElement_t* aPrev)
 {
     linkedListElement_t* linkedList = NULL;
 
@@ -34,7 +34,7 @@ linkedListElement_t* allocElement (void* aItem, linkedListElement_t* aPrev)
     if (linkedList)
     {
         linkedList->item = aItem;
-        linkedList->next = NULL;
+        linkedList->next = aNext;
         linkedList->prev = aPrev;
     }
 
@@ -100,7 +100,7 @@ bool_t addScriptElement(char * aText, linkedList_t * aLinkedList)
     {
         strncpy(linkedListText, aText, len + 1);
 
-        (*aLinkedList->it) = allocElement (linkedListText, aLinkedList->it_prev);
+        (*aLinkedList->it) = allocElement (linkedListText, NULL, aLinkedList->it_prev);
         if (*aLinkedList->it)
         {
             aLinkedList->last = *(aLinkedList->it);

@@ -1041,7 +1041,7 @@ bool_t eventHandler()
         else if (event.type == SDL_KEYDOWN)
         {
             eventOccurred = TRUE;
-            if (textInputIsStarted)
+            if (textInputIsStarted && text)
             {
               uint32_t len = strnlen(text, textLength);
               if (event.key.keysym.sym >= 32 && event.key.keysym.sym <= 126)

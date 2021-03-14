@@ -31,7 +31,7 @@ typedef struct
     linkedListElement_t* it_prev;   /**< List previous element. Used to build list. */
 } linkedList_t;
 
-linkedListElement_t* allocElement (void* aItem, linkedListElement_t* aPrev);
+linkedListElement_t* allocElement (void* aItem, linkedListElement_t* aNext, linkedListElement_t* aPrev);
 linkedListElement_t* freeElement (linkedListElement_t* aLinkedList);
 void freeLinkedList (linkedList_t* aLinkedList);
 bool_t addScriptElement(char * aText, linkedList_t * aLinkedList);
