@@ -23,6 +23,10 @@
 #include "linkedlist.h"
 #include "script.h"
 
+#define DEFAULT_INFO_TEXT_TIMER     200 // display text for 2 seconds
+
+uint32_t     infoTextTimer = DEFAULT_INFO_TEXT_TIMER;
+char infoText[512] = "Telepromter started";
 const char* helpText[] =
 {
     "This is Delta Teleprompter.",
@@ -99,16 +103,21 @@ void printCommon (void)
     SDL_Rect sdl_rect;
     Uint32 background_color;
     char s[64];
+    background_color = SDL_MapRGB(screen->format, config.background_color.r, config.background_color.g, config.background_color.b);
 
-#if 0
-    gfx_line_draw (MAP_SIZE_X_PX + 1, 0,
-                   MAP_SIZE_X_PX + 1, MAP_SIZE_Y_PX,
-                   gfx_color_rgb (0xFF, 0xFF, 0xFF));
-    sprintf (s, "Score: ");
-    gfx_font_print(TEXT_X(0), TEXT_YN(0), s);
-    sprintf (s, "Level: ");
-    gfx_font_print(TEXT_X(0), TEXT_YN(1), s);
-#endif
+    if (infoTextTimer)
+    {
+        sdl_rect.x = 0;
+        sdl_rect.y = 0;
+        sdl_rect.w = config.video_size_x_px;
+        sdl_rect.h = TEXT_Y(2) + FONT_NORMAL_SIZE_Y_PX / 2;
+        SDL_FillRect(screen, &sdl_rect, background_color);
+        gfx_line_draw (0, TEXT_Y(2), config.video_size_x_px, TEXT_Y(2),
+                       gfx_color_rgb (0xFF, 0xFF, 0xFF)); // TODO color is textcolor!
+
+        gfx_font_print_center(TEXT_Y(1), infoText);
+        infoTextTimer--;
+    }
     if (TELEPROMPTER_IS_FINISHED())
     {
         gfx_font_print_center(TEXT_YN(11), "Press 'ENTER' to replay,");
@@ -116,18 +125,19 @@ void printCommon (void)
     }
     else if (TELEPROMPTER_IS_PAUSED())
     {
-        background_color = SDL_MapRGB(screen->format, config.background_color.r, config.background_color.g, config.background_color.b);
-
         sdl_rect.x = 0;
         sdl_rect.y = 0;
         sdl_rect.w = config.video_size_x_px;
-        sdl_rect.h = TEXT_Y(2) + FONT_NORMAL_SIZE_Y_PX;
+        sdl_rect.h = TEXT_Y(4) + FONT_NORMAL_SIZE_Y_PX / 2;
         SDL_FillRect(screen, &sdl_rect, background_color);
 
-        gfx_font_print(TEXT_X(0), TEXT_Y(0), "** PAUSED **");
+        gfx_line_draw (0, TEXT_Y(4), config.video_size_x_px, TEXT_Y(4),
+                       gfx_color_rgb (0xFF, 0xFF, 0xFF)); // TODO color is textcolor!
+
+        gfx_font_print_center(TEXT_Y(1), "** PAUSED **");
         snprintf (s, sizeof (s), "Delta Teleprompter v%i.%i.%i", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
-        gfx_font_print(TEXT_X(0), TEXT_Y(1), s);
-        gfx_font_print(TEXT_X(0), TEXT_Y(2), "Copyright (C) Peter Ivanov <ivanovp@gmail.com>, 2021");
+        gfx_font_print_center(TEXT_Y(2), s);
+        gfx_font_print_center(TEXT_Y(3), "Copyright (C) Peter Ivanov <ivanovp@gmail.com>, 2021");
     }
     else
     {
@@ -255,6 +265,28 @@ void drawInfoScreen (const char *aFmt, ...)
     {
         SDL_Delay(1);
     }
+}
+
+/**
+ * Prints message in the top of screen.
+ * Printf function which prints to middle of screen.
+ * Note: display shall be initialized to use this function!
+ *
+ * Example:
+<pre>
+drawInfoScreen ("Number: %02i\r\n", number);
+</pre>
+ *
+ * @param fmt Printf format string. Example: "Value: %02i\r\n"
+ */
+void drawTopInfoScreen (const char *aFmt, ...)
+{
+    static va_list valist;
+
+    va_start (valist, aFmt);
+    vsnprintf (infoText, sizeof (infoText), aFmt, valist);
+    va_end (valist);
+    infoTextTimer = DEFAULT_INFO_TEXT_TIMER;
 }
 
 /**

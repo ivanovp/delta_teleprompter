@@ -607,6 +607,9 @@ void initScreen(void)
 }
 
 
+/**
+ * @brief initTimer Initialize auto scroll timer.
+ */
 void initTimer(void)
 {
     Uint32 delay = (config.auto_scroll_speed ^ UINT8_MAX);
@@ -618,6 +621,10 @@ void initTimer(void)
 }
 
 
+/**
+ * @brief printHelp Print help to console.
+ * @param cmd Executed command (argv[0])
+ */
 void printHelp(const char * cmd)
 {
     printf("Usage:\n"
@@ -1046,6 +1053,7 @@ bool_t init (int argc, char* argv[])
         printf("\n");
         if (printConfig)
         {
+            /* Print configuration then exit... */
             exit(0);
         }
     }
@@ -1161,7 +1169,7 @@ void handleTeleprompterKeys (void)
             initTimer();
         }
         verboseprintf("Auto scroll speed: %i\n", config.auto_scroll_speed);
-        drawInfoScreen("Auto scroll speed: %i", config.auto_scroll_speed);
+        drawTopInfoScreen("Auto scroll speed: %i", config.auto_scroll_speed);
     }
     else if (IS_PRESSED_CHANGED(KEY_LEFT))
     {
@@ -1172,7 +1180,7 @@ void handleTeleprompterKeys (void)
             initTimer();
         }
         verboseprintf("Auto scroll speed: %i\n", config.auto_scroll_speed);
-        drawInfoScreen("Auto scroll speed: %i", config.auto_scroll_speed);
+        drawTopInfoScreen("Auto scroll speed: %i", config.auto_scroll_speed);
     }
     if (IS_PRESSED_CHANGED(KEY_PLUS))
     {
@@ -1182,7 +1190,7 @@ void handleTeleprompterKeys (void)
             loadFontWrap = TRUE;
         }
         verboseprintf("Font size: %i\n", config.ttf_size);
-        drawInfoScreen("Font size: %i", config.ttf_size);
+        drawTopInfoScreen("Font size: %i", config.ttf_size);
     }
     else if (IS_PRESSED_CHANGED(KEY_MINUS))
     {
@@ -1192,7 +1200,7 @@ void handleTeleprompterKeys (void)
             loadFontWrap = TRUE;
         }
         verboseprintf("Font size: %i\n", config.ttf_size);
-        drawInfoScreen("Font size: %i", config.ttf_size);
+        drawTopInfoScreen("Font size: %i", config.ttf_size);
     }
     if (IS_PRESSED_CHANGED(KEY_UP))
     {
@@ -1210,12 +1218,12 @@ void handleTeleprompterKeys (void)
         if (config.align_center)
         {
             verboseprintf("Align center\n");
-            drawInfoScreen("Align center");
+            drawTopInfoScreen("Align center");
         }
         else
         {
             verboseprintf("Align left\n");
-            drawInfoScreen("Align left");
+            drawTopInfoScreen("Align left");
         }
     }
     if (IS_PRESSED_CHANGED(KEY_F3))
@@ -1225,7 +1233,7 @@ void handleTeleprompterKeys (void)
             config.scroll_line_count -= SCROLL_LINE_COUNT_STEP;
         }
         verboseprintf("Scroll line count: %i\n", config.scroll_line_count);
-        drawInfoScreen("Scroll line count: %i", config.scroll_line_count);
+        drawTopInfoScreen("Scroll line count: %i", config.scroll_line_count);
     }
     if (IS_PRESSED_CHANGED(KEY_F4))
     {
@@ -1234,7 +1242,7 @@ void handleTeleprompterKeys (void)
             config.scroll_line_count += SCROLL_LINE_COUNT_STEP;
         }
         verboseprintf("Scroll line count: %i\n", config.scroll_line_count);
-        drawInfoScreen("Scroll line count: %i", config.scroll_line_count);
+        drawTopInfoScreen("Scroll line count: %i", config.scroll_line_count);
     }
     if (IS_PRESSED_CHANGED(KEY_F5))
     {
@@ -1244,7 +1252,7 @@ void handleTeleprompterKeys (void)
             loadFontWrap = TRUE;
         }
         verboseprintf("Text width: %i%%\n", config.text_width_percent);
-        drawInfoScreen("Text width: %i%%", config.text_width_percent);
+        drawTopInfoScreen("Text width: %i%%", config.text_width_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F6))
     {
@@ -1254,7 +1262,7 @@ void handleTeleprompterKeys (void)
             loadFontWrap = TRUE;
         }
         verboseprintf("Text width: %i%%\n", config.text_width_percent);
-        drawInfoScreen("Text width: %i%%", config.text_width_percent);
+        drawTopInfoScreen("Text width: %i%%", config.text_width_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F7))
     {
@@ -1264,7 +1272,7 @@ void handleTeleprompterKeys (void)
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
         verboseprintf("Text height: %i%%\n", config.text_height_percent);
-        drawInfoScreen("Text height: %i%%", config.text_height_percent);
+        drawTopInfoScreen("Text height: %i%%", config.text_height_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F8))
     {
@@ -1274,11 +1282,21 @@ void handleTeleprompterKeys (void)
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
         verboseprintf("Text height: %i%%\n", config.text_height_percent);
-        drawInfoScreen("Text height: %i%%", config.text_height_percent);
+        drawTopInfoScreen("Text height: %i%%", config.text_height_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F11))
     {
         config.full_screen = !config.full_screen;
+        if (config.full_screen)
+        {
+            verboseprintf("Full screen mode");
+            drawTopInfoScreen("Fullscreen mode");
+        }
+        else
+        {
+            verboseprintf("Windowed mode");
+            drawTopInfoScreen("Windowed mode");
+        }
         initScreen();
     }
 
