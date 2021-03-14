@@ -594,13 +594,15 @@ void initScreen(void)
                                         config.video_size_x_px, config.video_size_y_px, config.video_depth_bit,
                                         0, 0, 0, 0xFF);
 
-#if 1
+#if 0
     uint16_t y;
     for (y = 0; y < 100; y++)
     {
         lineRGBA(alphaSurface, 0, y, config.video_size_x_px - 1, y, 0xFF, 0xFF, 0xFF, y);
     }
 #endif
+
+    SDL_ShowCursor(SDL_DISABLE);
 
     //Apply image to screen
     SDL_BlitSurface(background, NULL, screen, NULL);
