@@ -90,6 +90,8 @@ mykey_t      keys[KEY_COUNT] = { 0 };
 #define IS_PRESSED(key)             keys[(key)].pressed
 #define IS_CHANGED(key)             keys[(key)].changed
 #define IS_PRESSED_CHANGED(key)     (keys[(key)].pressed && keys[(key)].changed)
+#define verboseprintf(...)          if (config.verbose) printf(__VA_ARGS__)
+#define errorprintf(...)            printf("ERROR: "); printf(__VA_ARGS__)
 
 const char *homeDir;
 
@@ -111,6 +113,7 @@ config_t config =
     .auto_scroll_speed = 240,               // range: 0..255
     .scroll_line_count = 5,
     .full_screen = FALSE,
+    .verbose = FALSE,
 };
 
 /* Teleprompter related */
@@ -200,11 +203,10 @@ bool_t saveConfig (void)
     FILE* configFile;
     char path[256];
 
-    printf ("Saving configuration...\n");
+    verboseprintf ("Saving configuration...\n");
 
     strncpy(path, homeDir, sizeof(path));
     strncat(path, CONFIG_FILENAME, sizeof(path));
-    printf("%s: %s\n", __FUNCTION__, path);
     configFile = fopen (path, "wb");
     if (configFile)
     {
@@ -218,8 +220,7 @@ bool_t saveConfig (void)
     }
     else
     {
-      printf("Cannot save configuration!");
-      SDL_Delay(500);
+      errorprintf("Cannot save configuration!");
     }
 
     return ok;
@@ -239,24 +240,24 @@ bool_t loadFont(const char * aFontFilePath, int aFontSize, wrappedScript_t *aWra
 
     if (aWrappedScript->ttf_font)
     {
-        printf("Releasing previous font... ");
+        verboseprintf("Releasing previous font... ");
         TTF_CloseFont(aWrappedScript->ttf_font);
         aWrappedScript->ttf_font = NULL;
-        printf("Done.\n");
+        verboseprintf("Done.\n");
     }
     // Load a TrueType font
-    printf("Font size: %i\n", aFontSize);
+    verboseprintf("Font size: %i\n", aFontSize);
     if (aFontFilePath != NULL && strlen(aFontFilePath))
     {
-        printf("Loading font '%s'... ", aFontFilePath);
+        verboseprintf("Loading font '%s'... ", aFontFilePath);
         aWrappedScript->ttf_font = TTF_OpenFont(aFontFilePath, aFontSize);
         if (aWrappedScript->ttf_font != NULL)
         {
-            printf("Done.\n");
+            verboseprintf("Done.\n");
         }
         else
         {
-            printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
+            errorprintf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
         }
     }
 
@@ -272,13 +273,13 @@ bool_t loadFont(const char * aFontFilePath, int aFontSize, wrappedScript_t *aWra
 #endif
     if (aWrappedScript->ttf_font == NULL)
     {
-        printf("Loading embedded font\n");
+        verboseprintf("Loading embedded font\n");
         // Load TrueType font which is embedded into this software
         SDL_RWops* rwops = SDL_RWFromConstMem(_binary_DejaVuSans_ttf_start, (size_t)&_binary_DejaVuSans_ttf_size);
         aWrappedScript->ttf_font = TTF_OpenFontRW(rwops, 1, aFontSize);
         if (aWrappedScript->ttf_font == NULL)
         {
-            printf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
+            errorprintf("TTF_OpenFont() Failed: %s\n", TTF_GetError());
             ok = FALSE;
         }
     }
@@ -305,17 +306,17 @@ bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
 
     if (*aScriptBuffer)
     {
-        printf("Releasing memory... ");
+        verboseprintf("Releasing memory... ");
         free(*aScriptBuffer);
         *aScriptBuffer = NULL;
-        printf("Done\n");
+        verboseprintf("Done\n");
     }
 
-    printf("Open file %s ... ", aScriptFilePath);
+    verboseprintf("Open file %s ... ", aScriptFilePath);
     file = fopen(aScriptFilePath, "r");
     if (file)
     {
-        printf("Done.\n");
+        verboseprintf("Done.\n");
         if (fseek(file, 0, SEEK_END) == 0)
         {
             fileSize = ftell(file);
@@ -323,14 +324,14 @@ bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
             {
                 if (fseek(file, 0, SEEK_SET) == 0)
                 {
-                    printf("Script size: %lu\n", fileSize);
-                    printf("Allocating memory... ");
+                    verboseprintf("Script size: %lu\n", fileSize);
+                    verboseprintf("Allocating memory... ");
                     *aScriptBuffer = malloc(fileSize + 1); // +1 end of string
                     if (*aScriptBuffer)
                     {
-                        printf("Done.\n");
+                        verboseprintf("Done.\n");
                         readBytes = fread(*aScriptBuffer, 1, fileSize, file);
-                        printf("%lu bytes were read\n", readBytes);
+                        verboseprintf("%lu bytes were read\n", readBytes);
                         if (readBytes == fileSize)
                         {
                             (*aScriptBuffer)[fileSize] = CHR_EOS; // end of string
@@ -339,24 +340,27 @@ bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
                         }
                         else
                         {
-                            printf("errno: %i\n", errno);
-                            printf("strerror: %s\n", strerror(errno));
+                            errorprintf("Cannot read from script file!\n");
+                            verboseprintf("errno: %i\n", errno);
+                            verboseprintf("strerror: %s\n", strerror(errno));
                             drawInfoScreen("ERROR: Cannot read from script file!");
                         }
                     }
                     else
                     {
-                        printf("Error!\n");
+                        errorprintf("Cannot allocate memory for script!\n");
                         drawInfoScreen("ERROR: Cannot allocate memory for script!");
                     }
                 }
                 else
                 {
+                    errorprintf("Cannot seek to beginning of file!\n");
                     drawInfoScreen("ERROR: Cannot seek to beginning of file!");
                 }
             }
             else
             {
+                errorprintf("File is empty!\n");
                 drawInfoScreen("ERROR: File is empty!");
             }
         }
@@ -364,18 +368,19 @@ bool_t loadScript(const char * aScriptFilePath, char ** aScriptBuffer)
         {
             drawInfoScreen("ERROR: Cannot seek to end of file!");
         }
-        printf("Closing file... ");
+        verboseprintf("Closing file... ");
         if (!fclose(file))
         {
-            printf("Done.\n");
+            verboseprintf("Done.\n");
         }
         else
         {
-            printf("Error!\n");
+            errorprintf("Cannot close file!\n");
         }
     }
     else
     {
+        errorprintf("Cannot open script file!\n");
         drawInfoScreen("ERROR: Cannot open script file!");
     }
 
@@ -403,7 +408,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
     size_t   len;
     uint32_t additional_line_count;
 
-    printf("Wrap script to %i x %i... ", aMaxWidthPx, aMaxHeightPx);
+    verboseprintf("Wrap script to %i x %i... ", aMaxWidthPx, aMaxHeightPx);
     aWrappedScript->maxWidthPx = aMaxWidthPx;
     aWrappedScript->maxHeightPx = aMaxHeightPx;
 
@@ -484,7 +489,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
             }
             else
             {
-                printf("ERROR: Text too long!\n");
+                errorprintf("Text too long!\n");
                 ok = FALSE;
             }
         }
@@ -506,11 +511,15 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
         // FIXME display some text?
         freeLinkedList(&aWrappedScript->wrappedScriptList);
     }
-    printf("Done.\n");
+    verboseprintf("Done.\n");
 
     return ok;
 }
 
+/**
+ * @brief printScript Debug function which prints all text from wrapped script.
+ * @param aWrappedScriptList
+ */
 void printScript(linkedList_t * aWrappedScriptList)
 {
     linkedListElement_t* linkedListElement = aWrappedScriptList->actual;
@@ -600,6 +609,11 @@ void printHelp(const char * cmd)
            "-c or --align-center: align text to center. Default.\n"
            "-l or --align-left: align text to left.\n"
            "-a or --auto-scroll-speed: specify speed of auto scrolling. Default: 240.\n"
+           "-slc or --scroll-line-count: specify count of lines which scrolled by up/down. Default: 4.\n"
+           "-fs or --full-screen: switch display to full screen mode.\n"
+           "-w or --window: switch display to windowed mode.\n"
+           "-v or --verbose: verbose mode.\n"
+           "-q or --quiet: quiet mode.\n"
            "\n"
            , cmd);
 }
@@ -631,6 +645,19 @@ SDL_Color getSDLColor(const char *str)
     return sdl_color;
 }
 
+char * getNextArg(uint8_t * index, int argc, char *argv[])
+{
+    char *arg = NULL;
+
+    (*index)++;
+    if (*index < argc)
+    {
+        arg = argv[*index];
+    }
+
+    return arg;
+}
+
 /**
  * @brief initArgs Parse command line arguments and change configuration according to that.
  *
@@ -640,27 +667,40 @@ SDL_Color getSDLColor(const char *str)
  */
 bool_t initArgs (int argc, char* argv[])
 {
-    uint8_t i;
+    uint8_t argIdx;
     char  * arg;
     bool_t  ok = TRUE;
 
-    for (i = 1; i < argc; i++)
+    for (argIdx = 1; argIdx < argc && ok; argIdx++)
     {
-        arg = argv[i];
-        printf("argv: %s\n", arg);
+        arg = argv[argIdx];
         if (!strcmp(arg, "-s") || !strcmp(arg, "--script"))
         {
             /* Script file path */
-            i++;
-            arg = argv[i];
-            strncpy(config.script_file_path, arg, sizeof(config.script_file_path));
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                strncpy(config.script_file_path, arg, sizeof(config.script_file_path));
+            }
+            else
+            {
+                errorprintf("Script file path missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-f") || !strcmp(arg, "--font"))
         {
             /* Font file path */
-            i++;
-            arg = argv[i];
-            strncpy(config.ttf_file_path, arg, sizeof(config.ttf_file_path));
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                strncpy(config.ttf_file_path, arg, sizeof(config.ttf_file_path));
+            }
+            else
+            {
+                errorprintf("Font file path missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-i") || !strcmp(arg, "--internal-font"))
         {
@@ -670,58 +710,114 @@ bool_t initArgs (int argc, char* argv[])
         else if (!strcmp(arg, "-S") || !strcmp(arg, "--font-size"))
         {
             /* Font size */
-            i++;
-            arg = argv[i];
-            config.ttf_size = atoi(arg);
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.ttf_size = atoi(arg);
+            }
+            else
+            {
+                errorprintf("Font size missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-tw") || !strcmp(arg, "--text-width-percent"))
         {
             /* Text width in percent */
-            i++;
-            arg = argv[i];
-            config.text_width_percent = atoi(arg);
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.text_width_percent = atoi(arg);
+            }
+            else
+            {
+                errorprintf("Text width missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-th") || !strcmp(arg, "--text-height-percent"))
         {
             /* Text height in percent */
-            i++;
-            arg = argv[i];
-            config.text_height_percent = atoi(arg);
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.text_height_percent = atoi(arg);
+            }
+            else
+            {
+                errorprintf("Text height missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-vx") || !strcmp(arg, "--video-size-x"))
         {
             /* Video size in X direction */
-            i++;
-            arg = argv[i];
-            config.video_size_x_px = atoi(arg);
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.video_size_x_px = atoi(arg);
+            }
+            else
+            {
+                errorprintf("Video size X missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-vy") || !strcmp(arg, "--video-size-y"))
         {
             /* Video size in X direction */
-            i++;
-            arg = argv[i];
-            config.video_size_y_px = atoi(arg);
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.video_size_y_px = atoi(arg);
+            }
+            else
+            {
+                errorprintf("Video size Y missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-vd") || !strcmp(arg, "--video-depth-bit"))
         {
             /* Video depth in bits */
-            i++;
-            arg = argv[i];
-            config.video_depth_bit = atoi(arg);
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.video_depth_bit = atoi(arg);
+            }
+            else
+            {
+                errorprintf("Video depth missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-bgc") || !strcmp(arg, "--background-color"))
         {
             /* Background color */
-            i++;
-            arg = argv[i];
-            config.background_color = getSDLColor(arg);
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.background_color = getSDLColor(arg);
+            }
+            else
+            {
+                errorprintf("Background color missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-tc") || !strcmp(arg, "--text-color"))
         {
             /* Text color */
-            i++;
-            arg = argv[i];
-            config.text_color = getSDLColor(arg);
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.text_color = getSDLColor(arg);
+            }
+            else
+            {
+                errorprintf("Text color missing!\n");
+                ok = FALSE;
+            }
         }
         else if (!strcmp(arg, "-c") || !strcmp(arg, "--align-center"))
         {
@@ -736,21 +832,66 @@ bool_t initArgs (int argc, char* argv[])
         else if (!strcmp(arg, "-a") || !strcmp(arg, "--auto-scroll-speed"))
         {
             /* Speed of automatic text scroll */
-            i++;
-            arg = argv[i];
-            config.auto_scroll_speed = atoi(arg);
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.auto_scroll_speed = atoi(arg);
+            }
+            else
+            {
+                errorprintf("Scroll speed missing!\n");
+                ok = FALSE;
+            }
+        }
+        else if (!strcmp(arg, "-slc") || !strcmp(arg, "--scroll-line-count"))
+        {
+            /* Count of scrolled lines when pressing up/down */
+            arg = getNextArg(&argIdx, argc, argv);
+            if (arg)
+            {
+                config.scroll_line_count = atoi(arg);
+            }
+            else
+            {
+                errorprintf("Scroll line count missing!\n");
+                ok = FALSE;
+            }
+        }
+        else if (!strcmp(arg, "-fs") || !strcmp(arg, "--full-screen"))
+        {
+            /* Full screen mode */
+            config.full_screen = TRUE;
+        }
+        else if (!strcmp(arg, "-w") || !strcmp(arg, "--window"))
+        {
+            /* Windowed mode */
+            config.full_screen = FALSE;
+        }
+        else if (!strcmp(arg, "-v") || !strcmp(arg, "--verbose"))
+        {
+            /* Verbose mode */
+            config.verbose = TRUE;
+        }
+        else if (!strcmp(arg, "-q") || !strcmp(arg, "--quiet"))
+        {
+            /* Quiet mode */
+            config.verbose = FALSE;
         }
         else if (!strcmp(arg, "-h") || !strcmp(arg, "--help"))
         {
             printHelp(argv[0]);
-            exit(1);
+            exit(0);
         }
         else
         {
-            printf("ERROR: unknown parameter!\n"
-                   "\n"
-                   "See help: -h\n");
+            errorprintf("Unknown parameter!\n");
+            ok = FALSE;
         }
+    }
+    if (!ok)
+    {
+        printf("\n"
+               "See help: -h\n");
     }
 
     return ok;
@@ -795,38 +936,48 @@ bool_t init (int argc, char* argv[])
 
     loadConfig ();
 
-    initArgs(argc, argv);
+    if (!initArgs(argc, argv))
+    {
+        exit(2);
+    }
 
     SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO);
 //    SDL_Init(SDL_INIT_EVERYTHING);
 
     videoInfo = SDL_GetVideoInfo();
 
-    printf("Hardware surface available: %i\n",      videoInfo->hw_available);	/**< Flag: Can you create hardware surfaces? */
-    printf("Window manager available: %i\n",        videoInfo->wm_available);	/**< Flag: Can you talk to a window manager? */
-    printf("Accelerated blits HW->HW: %i\n",        videoInfo->blit_hw     );	/**< Flag: Accelerated blits HW --> HW */
-    printf("Accelerated blits with Colorkey: %i\n", videoInfo->blit_hw_CC  );	/**< Flag: Accelerated blits with Colorkey */
-    printf("Accelerated blits with Alpha: %i\n",    videoInfo->blit_hw_A   );	/**< Flag: Accelerated blits with Alpha */
-    printf("Accelerated blits SW->HW: %i\n",        videoInfo->blit_sw     );	/**< Flag: Accelerated blits SW --> HW */
-    printf("Accelerated blits with Colorkey: %i\n", videoInfo->blit_sw_CC  );	/**< Flag: Accelerated blits with Colorkey */
-    printf("Accelerated blits with Alpha: %i\n",    videoInfo->blit_sw_A   );	/**< Flag: Accelerated blits with Alpha */
-    printf("Accelerated color fill: %i\n",          videoInfo->blit_fill   );	/**< Flag: Accelerated color fill */
-    printf("Actual screen size: %i x %i\n",         videoInfo->current_w, videoInfo->current_h);
-    printf("Video memory: %i KiB\n",                videoInfo->video_mem);
-
-    printf("Configuration version: %i\n", config.version);
-    printf("Script file path:      %s\n", config.script_file_path);
-    printf("Font file path:        %s\n", config.ttf_file_path);
-    printf("Font size:             %i\n", config.ttf_size);
-    printf("Text width:            %i%%\n", config.text_width_percent);
-    printf("Text height:           %i%%\n", config.text_height_percent);
-    printf("Requested screen size: %i x %i x %i\n", config.video_size_x_px, config.video_size_y_px, config.video_depth_bit);
-    printf("Background color:      %02X %02X %02X\n", config.background_color.r, config.background_color.g, config.background_color.b);
-    printf("Text color:            %02X %02X %02X\n", config.text_color.r, config.text_color.g, config.text_color.b);
-    printf("Align center:          %i\n", config.align_center);
-    printf("Auto scroll speed:     %i\n", config.auto_scroll_speed);
-    printf("Scroll line count:     %i\n", config.scroll_line_count);
-    printf("Full screen:           %i\n", config.full_screen);
+    if (config.verbose)
+    {
+        printf("VIDEO\n");
+        printf("-----\n");
+        printf("Hardware surface available: %i\n",      videoInfo->hw_available);	/**< Flag: Can you create hardware surfaces? */
+        printf("Window manager available: %i\n",        videoInfo->wm_available);	/**< Flag: Can you talk to a window manager? */
+        printf("Accelerated blits HW->HW: %i\n",        videoInfo->blit_hw     );	/**< Flag: Accelerated blits HW --> HW */
+        printf("Accelerated blits with Colorkey: %i\n", videoInfo->blit_hw_CC  );	/**< Flag: Accelerated blits with Colorkey */
+        printf("Accelerated blits with Alpha: %i\n",    videoInfo->blit_hw_A   );	/**< Flag: Accelerated blits with Alpha */
+        printf("Accelerated blits SW->HW: %i\n",        videoInfo->blit_sw     );	/**< Flag: Accelerated blits SW --> HW */
+        printf("Accelerated blits with Colorkey: %i\n", videoInfo->blit_sw_CC  );	/**< Flag: Accelerated blits with Colorkey */
+        printf("Accelerated blits with Alpha: %i\n",    videoInfo->blit_sw_A   );	/**< Flag: Accelerated blits with Alpha */
+        printf("Accelerated color fill: %i\n",          videoInfo->blit_fill   );	/**< Flag: Accelerated color fill */
+        printf("Actual screen size: %i x %i\n",         videoInfo->current_w, videoInfo->current_h);
+        printf("Video memory: %i KiB\n",                videoInfo->video_mem);
+        printf("\n");
+        printf("CONFIGURATION\n");
+        printf("-------------\n");
+        printf("Configuration version: %i\n", config.version);
+        printf("Script file path:      %s\n", config.script_file_path);
+        printf("Font file path:        %s\n", config.ttf_file_path);
+        printf("Font size:             %i\n", config.ttf_size);
+        printf("Text width:            %i%%\n", config.text_width_percent);
+        printf("Text height:           %i%%\n", config.text_height_percent);
+        printf("Requested screen size: %i x %i x %i\n", config.video_size_x_px, config.video_size_y_px, config.video_depth_bit);
+        printf("Background color:      %02X %02X %02X\n", config.background_color.r, config.background_color.g, config.background_color.b);
+        printf("Text color:            %02X %02X %02X\n", config.text_color.r, config.text_color.g, config.text_color.b);
+        printf("Align center:          %i\n", config.align_center);
+        printf("Auto scroll speed:     %i\n", config.auto_scroll_speed);
+        printf("Scroll line count:     %i\n", config.scroll_line_count);
+        printf("Full screen:           %i\n", config.full_screen);
+    }
 
     initScreen();
     initTimer();
@@ -834,7 +985,7 @@ bool_t init (int argc, char* argv[])
     // Initialize SDL_ttf library
     if (TTF_Init() != 0)
     {
-        printf("TTF_Init() Failed: %s\n", TTF_GetError());
+        errorprintf("TTF_Init() Failed: %s\n", TTF_GetError());
         SDL_Quit();
         exit(1);
     }
@@ -938,7 +1089,7 @@ void handleTeleprompterKeys (void)
             config.auto_scroll_speed++;
             initTimer();
         }
-        printf("Auto scroll speed: %i\n", config.auto_scroll_speed);
+        verboseprintf("Auto scroll speed: %i\n", config.auto_scroll_speed);
         drawInfoScreen("Auto scroll speed: %i", config.auto_scroll_speed);
     }
     else if (IS_PRESSED_CHANGED(KEY_LEFT))
@@ -949,7 +1100,7 @@ void handleTeleprompterKeys (void)
             config.auto_scroll_speed--;
             initTimer();
         }
-        printf("Auto scroll speed: %i\n", config.auto_scroll_speed);
+        verboseprintf("Auto scroll speed: %i\n", config.auto_scroll_speed);
         drawInfoScreen("Auto scroll speed: %i", config.auto_scroll_speed);
     }
     if (IS_PRESSED_CHANGED(KEY_PLUS))
@@ -985,7 +1136,7 @@ void handleTeleprompterKeys (void)
             config.text_width_percent -= TEXT_WIDTH_PERCENT_STEP;
             loadFontWrap = TRUE;
         }
-        printf("Text width: %i%%\n", config.text_width_percent);
+        verboseprintf("Text width: %i%%\n", config.text_width_percent);
         drawInfoScreen("Text width: %i%%", config.text_width_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F6))
@@ -995,7 +1146,7 @@ void handleTeleprompterKeys (void)
             config.text_width_percent += TEXT_WIDTH_PERCENT_STEP;
             loadFontWrap = TRUE;
         }
-        printf("Text width: %i%%\n", config.text_width_percent);
+        verboseprintf("Text width: %i%%\n", config.text_width_percent);
         drawInfoScreen("Text width: %i%%", config.text_width_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F7))
@@ -1005,7 +1156,7 @@ void handleTeleprompterKeys (void)
             config.text_height_percent -= TEXT_HEIGHT_PERCENT_STEP;
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
-        printf("Text height: %i%%\n", config.text_height_percent);
+        verboseprintf("Text height: %i%%\n", config.text_height_percent);
         drawInfoScreen("Text height: %i%%", config.text_height_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F8))
@@ -1015,7 +1166,7 @@ void handleTeleprompterKeys (void)
             config.text_height_percent += TEXT_HEIGHT_PERCENT_STEP;
             wrappedScript.maxHeightPx = (float)config.video_size_y_px * config.text_height_percent / 100.0f;
         }
-        printf("Text height: %i%%\n", config.text_height_percent);
+        verboseprintf("Text height: %i%%\n", config.text_height_percent);
         drawInfoScreen("Text height: %i%%", config.text_height_percent);
     }
     if (IS_PRESSED_CHANGED(KEY_F11))
@@ -1170,7 +1321,7 @@ void key_pressed(uint8_t key_index, bool_t pressed)
     }
     else
     {
-        printf("%s internal error\n", __FUNCTION__);
+        errorprintf("%s internal error\n", __FUNCTION__);
     }
 }
 
@@ -1409,17 +1560,17 @@ void done (void)
 
     if (scriptBuffer)
     {
-        printf("Releasing memory... ");
+        verboseprintf("Releasing memory... ");
         free(scriptBuffer);
         scriptBuffer = NULL;
-        printf("Done\n");
+        verboseprintf("Done\n");
     }
 
     if (wrappedScript.wrappedScriptList.first)
     {
-        printf("Releasing linked list... ");
+        verboseprintf("Releasing linked list... ");
         freeLinkedList(&wrappedScript.wrappedScriptList);
-        printf("Done\n");
+        verboseprintf("Done\n");
     }
 
     TTF_CloseFont(wrappedScript.ttf_font);

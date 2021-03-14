@@ -86,6 +86,7 @@ typedef struct
     uint8_t     scroll_line_count;
     bool_t      full_screen;
     bool_t      text_fading;
+    bool_t      verbose;
 } config_t;
 
 /* Teleprompter related */
