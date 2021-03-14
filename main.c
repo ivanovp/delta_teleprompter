@@ -77,6 +77,10 @@
 #define MIN_TEXT_HEIGHT_PERCENT     10
 #define TEXT_HEIGHT_PERCENT_STEP    5
 
+#define MAX_SCROLL_LINE_COUNT       100
+#define MIN_SCROLL_LINE_COUNT       1
+#define SCROLL_LINE_COUNT_STEP      1
+
 typedef struct
 {
   bool_t pressed;
@@ -139,6 +143,7 @@ wrappedScript_t wrappedScript =
     .config = &config,
 };
 SDL_TimerID autoScrollTimer = NULL;
+bool_t printConfig = FALSE;
 
 /* Symbols for DejavuSans.o which is directly converted from .ttf to object using 'ld' */
 extern uint8_t _binary_DejaVuSans_ttf_start[];
@@ -669,6 +674,14 @@ SDL_Color getSDLColor(const char *str)
     return sdl_color;
 }
 
+/**
+ * @brief getNextArg Get next argument from command line parameters.
+ *
+ * @param index Pointer to current index.
+ * @param argc  Count of command line parameters.
+ * @param argv  Array of command line parameters.
+ * @return Next argument or NULL if no more arguments.
+ */
 char * getNextArg(uint8_t * index, int argc, char *argv[])
 {
     char *arg = NULL;
@@ -901,6 +914,11 @@ bool_t initArgs (int argc, char* argv[])
             /* Quiet mode */
             config.verbose = FALSE;
         }
+        else if (!strcmp(arg, "-pc") || !strcmp(arg, "--print-config"))
+        {
+            /* Print configuration the exit */
+            printConfig = TRUE;
+        }
         else if (!strcmp(arg, "-h") || !strcmp(arg, "--help"))
         {
             printHelp(argv[0]);
@@ -977,21 +995,23 @@ bool_t init (int argc, char* argv[])
             errorprintf("Cannot create directory '%s': %i\n", path, errno);
             exit(errno);
         }
+        /* This is the first run, show intro longer time */
+        introTimer = DEFAULT_INTRO_TIMER * 10;
     }
+
+    loadConfig ();
 
     if (!initArgs(argc, argv))
     {
         exit(2);
     }
 
-    loadConfig ();
-
     SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO);
 //    SDL_Init(SDL_INIT_EVERYTHING);
 
     videoInfo = SDL_GetVideoInfo();
 
-    if (config.verbose)
+    if (config.verbose || printConfig)
     {
         printf("CONFIGURATION\n");
         printf("-------------\n");
@@ -1024,6 +1044,10 @@ bool_t init (int argc, char* argv[])
         printf("Accelerated color fill:           %i\n", videoInfo->blit_fill   );	/**< Flag: Accelerated color fill */
         printf("\n");
         printf("\n");
+        if (printConfig)
+        {
+            exit(0);
+        }
     }
 
     initScreen();
@@ -1157,6 +1181,8 @@ void handleTeleprompterKeys (void)
             config.ttf_size += FONT_SIZE_STEP;
             loadFontWrap = TRUE;
         }
+        verboseprintf("Font size: %i\n", config.ttf_size);
+        drawInfoScreen("Font size: %i", config.ttf_size);
     }
     else if (IS_PRESSED_CHANGED(KEY_MINUS))
     {
@@ -1165,6 +1191,8 @@ void handleTeleprompterKeys (void)
             config.ttf_size -= FONT_SIZE_STEP;
             loadFontWrap = TRUE;
         }
+        verboseprintf("Font size: %i\n", config.ttf_size);
+        drawInfoScreen("Font size: %i", config.ttf_size);
     }
     if (IS_PRESSED_CHANGED(KEY_UP))
     {
@@ -1175,6 +1203,38 @@ void handleTeleprompterKeys (void)
     {
         /* Scroll script down */
         scrollScriptDown(&wrappedScript, config.scroll_line_count);
+    }
+    if (IS_PRESSED_CHANGED(KEY_F2))
+    {
+        config.align_center = !config.align_center;
+        if (config.align_center)
+        {
+            verboseprintf("Align center\n");
+            drawInfoScreen("Align center");
+        }
+        else
+        {
+            verboseprintf("Align left\n");
+            drawInfoScreen("Align left");
+        }
+    }
+    if (IS_PRESSED_CHANGED(KEY_F3))
+    {
+        if (config.scroll_line_count > MIN_SCROLL_LINE_COUNT)
+        {
+            config.scroll_line_count -= SCROLL_LINE_COUNT_STEP;
+        }
+        verboseprintf("Scroll line count: %i\n", config.scroll_line_count);
+        drawInfoScreen("Scroll line count: %i", config.scroll_line_count);
+    }
+    if (IS_PRESSED_CHANGED(KEY_F4))
+    {
+        if (config.scroll_line_count < MAX_SCROLL_LINE_COUNT)
+        {
+            config.scroll_line_count += SCROLL_LINE_COUNT_STEP;
+        }
+        verboseprintf("Scroll line count: %i\n", config.scroll_line_count);
+        drawInfoScreen("Scroll line count: %i", config.scroll_line_count);
     }
     if (IS_PRESSED_CHANGED(KEY_F5))
     {
