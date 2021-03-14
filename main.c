@@ -173,16 +173,14 @@ void loadConfig (void)
 {
     FILE* configFile;
     config_t configTemp;
-    char path[256];
-
-//    printf("Loading configuration...\n");
+    char path[MAX_PATH_LEN];
 
     strncpy(path, homeDir, sizeof(path));
     strncat(path, CONFIG_FILENAME, sizeof(path));
-//    printf("%s: %s\n", __FUNCTION__, path);
     configFile = fopen (path, "rb");
     if (configFile)
     {
+        verboseprintf("Loading configuration... ");
         size_t size;
         size = fread (&configTemp, 1, sizeof (configTemp), configFile);
         if (size == sizeof (configTemp) && configTemp.version == config.version)
@@ -190,7 +188,22 @@ void loadConfig (void)
             /* Configuration is OK, copy it */
             memcpy (&config, &configTemp, sizeof (config));
         }
-        fclose (configFile);
+        else
+        {
+            errorprintf("Cannot read configuration!\n");
+        }
+        if (!fclose (configFile))
+        {
+            verboseprintf("Done.\n");
+        }
+        else
+        {
+            errorprintf("Cannot close configuration file!\n");
+        }
+    }
+    else
+    {
+        verboseprintf("Configuration file does not exists, using default configuration...\n");
     }
 }
 
@@ -201,9 +214,9 @@ bool_t saveConfig (void)
 {
     bool_t ok = FALSE;
     FILE* configFile;
-    char path[256];
+    char path[MAX_PATH_LEN];
 
-    verboseprintf ("Saving configuration...\n");
+    verboseprintf ("Saving configuration... ");
 
     strncpy(path, homeDir, sizeof(path));
     strncat(path, CONFIG_FILENAME, sizeof(path));
@@ -216,7 +229,18 @@ bool_t saveConfig (void)
         {
             ok = TRUE;
         }
-        fclose (configFile);
+        else
+        {
+            errorprintf("Cannot write to configuration file!\n");
+        }
+        if (!fclose (configFile))
+        {
+            verboseprintf("Done.\n");
+        }
+        else
+        {
+            errorprintf("Cannot close configuration file!\n");
+        }
     }
     else
     {
@@ -906,7 +930,7 @@ bool_t initArgs (int argc, char* argv[])
 bool_t init (int argc, char* argv[])
 {
     uint8_t i;
-    char    path[256];
+    char    path[MAX_PATH_LEN];
     const SDL_VideoInfo * videoInfo;
 
     setlocale(LC_ALL, ""); // FIXME needed?
@@ -931,15 +955,36 @@ bool_t init (int argc, char* argv[])
     }
     strncpy(path, homeDir, sizeof(path));
     strncat(path, CONFIG_DIR, sizeof(path));
-//    printf("%s mkdir: %s\n", __FUNCTION__, path);
-    mkdir(path, 0755);
-
-    loadConfig ();
+    struct stat sb;
+    if (stat(path, &sb) == 0)
+    {
+        if (S_ISDIR(sb.st_mode))
+        {
+            /* Config directory already exists, we're good to go */
+        }
+        else
+        {
+            errorprintf("Configuration path exists, but it is not a directory!\n");
+            exit(3);
+        }
+    }
+    else
+    {
+        /* Configuration directory does not exists, create it */
+        int rc = mkdir(path, 0755);
+        if (rc != 0)
+        {
+            errorprintf("Cannot create directory '%s': %i\n", path, errno);
+            exit(errno);
+        }
+    }
 
     if (!initArgs(argc, argv))
     {
         exit(2);
     }
+
+    loadConfig ();
 
     SDL_Init(SDL_INIT_TIMER | SDL_INIT_VIDEO);
 //    SDL_Init(SDL_INIT_EVERYTHING);
@@ -948,20 +993,6 @@ bool_t init (int argc, char* argv[])
 
     if (config.verbose)
     {
-        printf("VIDEO\n");
-        printf("-----\n");
-        printf("Hardware surface available: %i\n",      videoInfo->hw_available);	/**< Flag: Can you create hardware surfaces? */
-        printf("Window manager available: %i\n",        videoInfo->wm_available);	/**< Flag: Can you talk to a window manager? */
-        printf("Accelerated blits HW->HW: %i\n",        videoInfo->blit_hw     );	/**< Flag: Accelerated blits HW --> HW */
-        printf("Accelerated blits with Colorkey: %i\n", videoInfo->blit_hw_CC  );	/**< Flag: Accelerated blits with Colorkey */
-        printf("Accelerated blits with Alpha: %i\n",    videoInfo->blit_hw_A   );	/**< Flag: Accelerated blits with Alpha */
-        printf("Accelerated blits SW->HW: %i\n",        videoInfo->blit_sw     );	/**< Flag: Accelerated blits SW --> HW */
-        printf("Accelerated blits with Colorkey: %i\n", videoInfo->blit_sw_CC  );	/**< Flag: Accelerated blits with Colorkey */
-        printf("Accelerated blits with Alpha: %i\n",    videoInfo->blit_sw_A   );	/**< Flag: Accelerated blits with Alpha */
-        printf("Accelerated color fill: %i\n",          videoInfo->blit_fill   );	/**< Flag: Accelerated color fill */
-        printf("Actual screen size: %i x %i\n",         videoInfo->current_w, videoInfo->current_h);
-        printf("Video memory: %i KiB\n",                videoInfo->video_mem);
-        printf("\n");
         printf("CONFIGURATION\n");
         printf("-------------\n");
         printf("Configuration version: %i\n", config.version);
@@ -977,6 +1008,22 @@ bool_t init (int argc, char* argv[])
         printf("Auto scroll speed:     %i\n", config.auto_scroll_speed);
         printf("Scroll line count:     %i\n", config.scroll_line_count);
         printf("Full screen:           %i\n", config.full_screen);
+        printf("\n");
+        printf("VIDEO\n");
+        printf("-----\n");
+        printf("Actual screen size:               %i x %i\n", videoInfo->current_w, videoInfo->current_h);
+        printf("Video memory:                     %i KiB\n", videoInfo->video_mem);
+        printf("Hardware surface available:       %i\n", videoInfo->hw_available);	/**< Flag: Can you create hardware surfaces? */
+        printf("Window manager available:         %i\n", videoInfo->wm_available);	/**< Flag: Can you talk to a window manager? */
+        printf("Accelerated blits HW->HW:         %i\n", videoInfo->blit_hw     );	/**< Flag: Accelerated blits HW --> HW */
+        printf("Accelerated blits with Colorkey:  %i\n", videoInfo->blit_hw_CC  );	/**< Flag: Accelerated blits with Colorkey */
+        printf("Accelerated blits with Alpha:     %i\n", videoInfo->blit_hw_A   );	/**< Flag: Accelerated blits with Alpha */
+        printf("Accelerated blits SW->HW:         %i\n", videoInfo->blit_sw     );	/**< Flag: Accelerated blits SW --> HW */
+        printf("Accelerated blits with Colorkey:  %i\n", videoInfo->blit_sw_CC  );	/**< Flag: Accelerated blits with Colorkey */
+        printf("Accelerated blits with Alpha:     %i\n", videoInfo->blit_sw_A   );	/**< Flag: Accelerated blits with Alpha */
+        printf("Accelerated color fill:           %i\n", videoInfo->blit_fill   );	/**< Flag: Accelerated color fill */
+        printf("\n");
+        printf("\n");
     }
 
     initScreen();

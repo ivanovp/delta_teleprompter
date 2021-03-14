@@ -50,7 +50,7 @@
 #define TELEPROMPTER_IS_RUNNING()   (main_state_machine == STATE_running)
 #define TELEPROMPTER_IS_FINISHED()  (main_state_machine == STATE_end)
 
-#define FSYS_FILENAME_MAX   255 // FIXME inherited from dingoo
+#define MAX_PATH_LEN        512
 #define OS_TICKS_PER_SEC    1000
 
 typedef char bool_t;
@@ -71,8 +71,8 @@ typedef enum
 typedef struct
 {
     uint8_t     version;        /* To prevent loading invalid configuration */
-    char        script_file_path[FSYS_FILENAME_MAX];
-    char        ttf_file_path[FSYS_FILENAME_MAX];
+    char        script_file_path[MAX_PATH_LEN];
+    char        ttf_file_path[MAX_PATH_LEN];
     uint16_t    ttf_size;
     uint16_t    text_width_percent;
     uint16_t    text_height_percent;
