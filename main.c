@@ -143,7 +143,7 @@ wrappedScript_t wrappedScript =
     .config = &config,
 };
 SDL_TimerID autoScrollTimer = NULL;
-bool_t printConfig = FALSE;
+bool_t printConfig = FALSE; /* Only print actual configuration then exit */
 
 /* Symbols for DejavuSans.o which is directly converted from .ttf to object using 'ld' */
 extern uint8_t _binary_DejaVuSans_ttf_start[];
@@ -916,7 +916,7 @@ bool_t initArgs (int argc, char* argv[])
         }
         else if (!strcmp(arg, "-pc") || !strcmp(arg, "--print-config"))
         {
-            /* Print configuration the exit */
+            /* Print configuration then exit */
             printConfig = TRUE;
         }
         else if (!strcmp(arg, "-h") || !strcmp(arg, "--help"))
