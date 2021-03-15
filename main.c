@@ -155,6 +155,7 @@ Uint32 timerCallbackFunc(Uint32 interval, void *param)
     SDL_Event event;
     SDL_UserEvent userevent;
 
+    (void)param;
     /* This callback pushes an SDL_USEREVENT event
     into the queue, and causes our callback to be called again at the
     same interval: */
@@ -181,7 +182,7 @@ void loadConfig (void)
     char path[MAX_PATH_LEN];
 
     strncpy(path, homeDir, sizeof(path));
-    strncat(path, CONFIG_FILENAME, sizeof(path));
+    strncat(path, CONFIG_FILENAME, sizeof(path) - 1);
     configFile = fopen (path, "rb");
     if (configFile)
     {
@@ -224,7 +225,7 @@ bool_t saveConfig (void)
     verboseprintf ("Saving configuration... ");
 
     strncpy(path, homeDir, sizeof(path));
-    strncat(path, CONFIG_FILENAME, sizeof(path));
+    strncat(path, CONFIG_FILENAME, sizeof(path) - 1);
     configFile = fopen (path, "wb");
     if (configFile)
     {
@@ -981,7 +982,7 @@ bool_t init (int argc, char* argv[])
       homeDir = getpwuid (getuid ())->pw_dir;
     }
     strncpy(path, homeDir, sizeof(path));
-    strncat(path, CONFIG_DIR, sizeof(path));
+    strncat(path, CONFIG_DIR, sizeof(path) - 1);
     struct stat sb;
     if (stat(path, &sb) == 0)
     {

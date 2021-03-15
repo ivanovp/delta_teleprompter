@@ -30,9 +30,9 @@
 #define BACKGROUND_PNG          GFX_DIR "bg.png"
 
 #define gfx_color_rgb(r,g,b)                    ( ( r << 24 ) | ( g << 16 ) | ( b << 8 ) | 0xFF )
-#define gfx_line_draw(x1, y1, x2, y2, color)    lineColor(screen, x1, y1, x2, y2, color)
-#define gfx_font_print(x,y,s)                   stringRGBA(screen, x, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF);
-#define gfx_font_print_fromright(x,y,s)         stringRGBA(screen, x - strlen(s) * FONT_NORMAL_SIZE_X_PX, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF);
+#define gfx_line_draw(x1, y1, x2, y2)           lineRGBA(screen, x1, y1, x2, y2, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
+#define gfx_font_print(x,y,s)                   stringRGBA(screen, x, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
+#define gfx_font_print_fromright(x,y,s)         stringRGBA(screen, x - strlen(s) * FONT_NORMAL_SIZE_X_PX, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
 #define gfx_font_print_center(y,s)              stringRGBA(screen, screen->w / 2 - strlen(s) / 2 * FONT_NORMAL_SIZE_X_PX, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
 
 extern SDL_Surface* background;

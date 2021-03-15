@@ -112,8 +112,7 @@ void printCommon (void)
         sdl_rect.w = config.video_size_x_px;
         sdl_rect.h = TEXT_Y(2) + FONT_NORMAL_SIZE_Y_PX / 2;
         SDL_FillRect(screen, &sdl_rect, background_color);
-        gfx_line_draw (0, TEXT_Y(2), config.video_size_x_px, TEXT_Y(2),
-                       gfx_color_rgb (0xFF, 0xFF, 0xFF)); // TODO color is textcolor!
+        gfx_line_draw (0, TEXT_Y(2), config.video_size_x_px, TEXT_Y(2));
 
         gfx_font_print_center(TEXT_Y(1), infoText);
         infoTextTimer--;
@@ -131,8 +130,7 @@ void printCommon (void)
         sdl_rect.h = TEXT_Y(4) + FONT_NORMAL_SIZE_Y_PX / 2;
         SDL_FillRect(screen, &sdl_rect, background_color);
 
-        gfx_line_draw (0, TEXT_Y(4), config.video_size_x_px, TEXT_Y(4),
-                       gfx_color_rgb (0xFF, 0xFF, 0xFF)); // TODO color is textcolor!
+        gfx_line_draw (0, TEXT_Y(4), config.video_size_x_px, TEXT_Y(4));
 
         gfx_font_print_center(TEXT_Y(1), "** PAUSED **");
         snprintf (s, sizeof (s), "Delta Teleprompter v%i.%i.%i", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
