@@ -15,21 +15,13 @@
 #include "common.h"
 #include "linkedlist.h"
 
-#define DEFAULT_BG_COLOR        gfx_color_rgb (0x00, 0x00, 0x00)    /* Black */
-#define DEFAULT_TEXT_COLOR      gfx_color_rgb (0xFF, 0xFF, 0xFF)    /* White */
-
-#define FONT_SMALL_SIZE_X_PX    8
-#define FONT_SMALL_SIZE_Y_PX    12
-
 #define FONT_NORMAL_SIZE_X_PX   8
 #define FONT_NORMAL_SIZE_Y_PX   12
 
 #define TEXT_X_0        (0)
 #define TEXT_Y_0        (0)
-#define TEXT_X(x)       (TEXT_X_0 + FONT_SMALL_SIZE_X_PX * (x))
-#define TEXT_Y(y)       (TEXT_Y_0 + (FONT_SMALL_SIZE_Y_PX) * (y))
-#define TEXT_XN(x)      (TEXT_X_0 + FONT_NORMAL_SIZE_X_PX * (x))
-#define TEXT_YN(y)      (TEXT_Y_0 + (FONT_NORMAL_SIZE_Y_PX) * (y))
+#define TEXT_X(x)       (TEXT_X_0 + FONT_NORMAL_SIZE_X_PX * (x))
+#define TEXT_Y(y)       (TEXT_Y_0 + (FONT_NORMAL_SIZE_Y_PX) * (y))
 
 #ifndef DATA_DIR
 #define DATA_DIR                "."

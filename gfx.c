@@ -120,8 +120,8 @@ void printCommon (void)
     }
     if (TELEPROMPTER_IS_FINISHED())
     {
-        gfx_font_print_center(TEXT_YN(11), "Press 'ENTER' to replay,");
-        gfx_font_print_center(TEXT_YN(12), "'ESCAPE' to quit...");
+        gfx_font_print_center(TEXT_Y(11), "Press 'ENTER' to replay,");
+        gfx_font_print_center(TEXT_Y(12), "'ESCAPE' to quit...");
     }
     else if (TELEPROMPTER_IS_PAUSED())
     {
@@ -142,16 +142,6 @@ void printCommon (void)
     else
     {
     }
-#if 0
-    /* Small debug */
-    snprintf (s, sizeof (s), "C");
-    gfx_font_print (TEXT_X_0,
-                    (screen->h - FONT_SMALL_SIZE_Y_PX - 4),
-                    gameFontSmall, s);
-    snprintf (s, sizeof (s), "v%lu.%lu.%lu", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
-    gfx_font_print_fromright ((screen->w - 4),
-                              (screen->h - FONT_SMALL_SIZE_Y_PX - 4), s);
-#endif
 }
 
 void drawScript(wrappedScript_t * aWrappedScript)
@@ -298,7 +288,7 @@ void drawHelpScreen(void)
     uint8_t i;
 
     SDL_BlitSurface(background, NULL, screen, NULL);
-    uint16_t y_center = config.video_size_y_px / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(helpText) / sizeof(helpText[0]) / 2);
+    uint16_t y_center = config.video_size_y_px / FONT_NORMAL_SIZE_Y_PX / 2 - (sizeof(helpText) / sizeof(helpText[0]) / 2);
     for (i = 0; i < sizeof(helpText) / sizeof(helpText[0]); i++)
     {
         gfx_font_print_center(TEXT_Y(y_center + i), (char*) helpText[i]);
