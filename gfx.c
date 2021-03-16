@@ -173,7 +173,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
         sdl_text = TTF_RenderUTF8_Blended(ttfFont, text, sdlTextColor);
         if (sdl_text == NULL)
         {
-            printf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
+            printf("TTF_RenderUTF8_Blended() Failed: %s\n", TTF_GetError());
             break;
         }
 
@@ -313,7 +313,7 @@ void gfx_font_print_center(int y, const char *str)
         sdl_text = TTF_RenderUTF8_Blended(ttf_font_monospace, str, sdlTextColor);
         if (sdl_text == NULL)
         {
-            errorprintf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
+            errorprintf("TTF_RenderUTF8_Blended() Failed: %s\n", TTF_GetError());
         }
 
         sdl_rect.x = screen->w / 2 - len / 2 * FONT_NORMAL_SIZE_X_PX;
@@ -343,7 +343,7 @@ void gfx_font_small_print_center(int y, const char *str)
         sdl_text = TTF_RenderUTF8_Blended(ttf_font_small_monospace, str, sdlTextColor);
         if (sdl_text == NULL)
         {
-            errorprintf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
+            errorprintf("TTF_RenderUTF8_Blended() Failed: %s\n", TTF_GetError());
         }
 
         sdl_rect.x = screen->w / 2 - len / 2 * FONT_SMALL_SIZE_X_PX;
