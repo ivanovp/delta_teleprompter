@@ -94,8 +94,6 @@ mykey_t      keys[KEY_COUNT] = { 0 };
 #define IS_PRESSED(key)             keys[(key)].pressed
 #define IS_CHANGED(key)             keys[(key)].changed
 #define IS_PRESSED_CHANGED(key)     (keys[(key)].pressed && keys[(key)].changed)
-#define verboseprintf(...)          if (config.verbose) printf(__VA_ARGS__)
-#define errorprintf(...)            printf("ERROR: "); printf(__VA_ARGS__)
 
 const char *homeDir;
 
@@ -144,11 +142,19 @@ wrappedScript_t wrappedScript =
 };
 SDL_TimerID autoScrollTimer = NULL;
 bool_t printConfig = FALSE; /* Only print actual configuration then exit */
+TTF_Font * ttf_font_monospace = NULL;
+uint16_t ttf_font_monospace_size = 16;
+int ttf_font_size_x = 1;
+int ttf_font_size_y = 1;
 
-/* Symbols for DejavuSans.o which is directly converted from .ttf to object using 'ld' */
+/* Symbols for DejaVuSans.o which is directly converted from .ttf to object using 'ld' */
 extern uint8_t _binary_DejaVuSans_ttf_start[];
-extern uint8_t _binary_DefavuSans_ttf_end;
+extern uint8_t _binary_DejaVuSans_ttf_end;
 extern uint8_t _binary_DejaVuSans_ttf_size;
+/* Symbols for consola.o which is directly converted from .ttf to object using 'ld' */
+extern uint8_t _binary_consola_ttf_start[];
+extern uint8_t _binary_consola_ttf_end;
+extern uint8_t _binary_consola_ttf_size;
 
 Uint32 timerCallbackFunc(Uint32 interval, void *param)
 {
@@ -1072,6 +1078,20 @@ bool_t init (int argc, char* argv[])
         exit(1);
     }
 
+    verboseprintf("Loading embedded monospace font\n");
+    // Load TrueType font which is embedded into this software
+    SDL_RWops* rwops = SDL_RWFromConstMem(_binary_consola_ttf_start, (size_t)&_binary_consola_ttf_size);
+    ttf_font_monospace_size = config.video_size_y_px / 26;
+    ttf_font_monospace = TTF_OpenFontRW(rwops, 1, ttf_font_monospace_size);
+    if (ttf_font_monospace == NULL)
+    {
+        errorprintf("TTF_OpenFontRW() Failed: %s\n", TTF_GetError());
+        exit(1);
+    }
+    /* The font is monospace, so every character should have same geometry */
+    /* Letter 'A' is used... */
+    TTF_SizeText(ttf_font_monospace, "A", &ttf_font_size_x, &ttf_font_size_y);
+
     for (i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
     {
         keys[i].repeatTick = NORMAL_REPEAT_TICK;
@@ -1701,7 +1721,14 @@ void done (void)
         verboseprintf("Done\n");
     }
 
-    TTF_CloseFont(wrappedScript.ttf_font);
+    if (wrappedScript.ttf_font)
+    {
+        TTF_CloseFont(wrappedScript.ttf_font);
+    }
+    if (ttf_font_monospace)
+    {
+        TTF_CloseFont(ttf_font_monospace);
+    }
 
     //Free the surfaces
     SDL_FreeSurface(background);

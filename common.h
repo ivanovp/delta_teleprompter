@@ -13,6 +13,7 @@
 
 #include <stdint.h>
 #include <SDL/SDL.h>
+#include <SDL/SDL_ttf.h>
 
 #define VERSION_MAJOR    1
 #define VERSION_MINOR    1
@@ -35,23 +36,17 @@
 #define CHR_TAB                     '\t'    /* Tabulator */
 #define IS_WHITESPACE(c)    ((c) == CHR_SPACE || (c) == CHR_CR || (c) == CHR_LF || (c) == CHR_TAB)
 
-#define BIT0    0x01u
-#define BIT1    0x02u
-#define BIT2    0x04u
-#define BIT3    0x08u
-#define BIT4    0x10u
-#define BIT5    0x20u
-#define BIT6    0x40u
-#define BIT7    0x80u
-
-#define _BV(x)  (1u << (x))
-
 #define TELEPROMPTER_IS_PAUSED()    (main_state_machine == STATE_paused)
 #define TELEPROMPTER_IS_RUNNING()   (main_state_machine == STATE_running)
 #define TELEPROMPTER_IS_FINISHED()  (main_state_machine == STATE_end)
 
 #define MAX_PATH_LEN        512
 #define OS_TICKS_PER_SEC    1000
+
+#define USE_INTERNAL_SDL_FONT   0
+
+#define verboseprintf(...)          if (config.verbose) printf(__VA_ARGS__)
+#define errorprintf(...)            printf("ERROR: "); printf(__VA_ARGS__)
 
 typedef char bool_t;
 
@@ -95,6 +90,8 @@ extern bool_t       teleprompterRunning;
 extern main_state_machine_t main_state_machine; /* Teleprompter state machine. @see handleMainStateMachine */
 
 extern config_t     config; /* Actual configuration. */
+
+extern TTF_Font * ttf_font_monospace;
 
 bool_t saveConfig (void);
 bool_t eventHandler();

@@ -35,19 +35,21 @@ const char* helpText[] =
     "Homepage: http://dev.ivanov.eu",
     "Licence: GPLv3",
     "",
-    "This program comes with ABSOLUTELY NO WARRANTY; for details see LICENSE.",
-    "This is free software, and you are welcome to redistribute it under certain",
-    "conditions; see LICENSE for details.",
+    "This program comes with ABSOLUTELY NO WARRANTY;",
+    "for details see LICENSE. This is free software,",
+    "and you are welcome to redistribute it under",
+    "certain conditions; see LICENSE for details.",
     "",
     "During play you can use these buttons:",
     "Enter/Space: Pause/play text",
     "Escape: Exit",
-    "Up/Down: Scroll text",
+    "Up/Down: Scroll text up/down",
     "Left/Right: Change speed of scrolling",
     "+/-: Increase/decrease font size",
     "F1: This help",
     "F2: Toggle align of text (center/left)",
-    "F3/F4: Descrease/increase scroll line count when pressed up/down",
+    "F3/F4: Descrease/increase scroll line",
+    "count when pressed up/down",
     "F5/F6: Descrease/increase text width",
     "F7/F8: Descrease/increase text height",
     "F11: Toggle fullscreen",
@@ -119,8 +121,8 @@ void printCommon (void)
     }
     if (TELEPROMPTER_IS_FINISHED())
     {
-        gfx_font_print_center(TEXT_Y(11), "Press 'ENTER' to replay,");
-        gfx_font_print_center(TEXT_Y(12), "'ESCAPE' to quit...");
+        gfx_font_print_center(TEXT_Y_CENTER(0), "Press 'ENTER' to replay,");
+        gfx_font_print_center(TEXT_Y_CENTER(1), "'ESCAPE' to quit...");
     }
     else if (TELEPROMPTER_IS_PAUSED())
     {
@@ -190,7 +192,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
 
         SDL_FreeSurface(sdl_text);
 
-        /* Advance to next line of script */
+        /* Advance to next gfx_line_draw of script */
         y += aWrappedScript->wrappedScriptHeightPx;
         sdl_rect.y = y;
         linkedListElement = linkedListElement->next;
@@ -217,7 +219,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
 void drawScreen (void)
 {
     // Restore background
-    SDL_BlitSurface( background, NULL, screen, NULL );
+    SDL_BlitSurface(background, NULL, screen, NULL);
 
     drawScript(&wrappedScript);
     printCommon ();
@@ -293,3 +295,35 @@ void drawHelpScreen(void)
     }
     SDL_Flip(screen);
 }
+
+#if USE_INTERNAL_SDL_FONT == 0
+void gfx_font_print_center(int y, const char *str)
+{
+    SDL_Surface   * sdl_text;
+    SDL_Rect        sdl_rect;
+    SDL_Color       sdlTextColor = config.text_color;
+    int             len = strlen(str);
+
+    if (len)
+    {
+        sdl_text = TTF_RenderUTF8_Blended(ttf_font_monospace, str, sdlTextColor);
+        if (sdl_text == NULL)
+        {
+            errorprintf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
+        }
+
+        sdl_rect.x = screen->w / 2 - len / 2 * FONT_NORMAL_SIZE_X_PX;
+        sdl_rect.y = y;
+        sdl_rect.w = sdl_text->clip_rect.w;
+        sdl_rect.h = sdl_text->clip_rect.h;
+
+        // Apply the text to the display
+        if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
+        {
+            printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
+        }
+
+        SDL_FreeSurface(sdl_text);
+    }
+}
+#endif
