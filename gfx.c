@@ -129,7 +129,7 @@ void printCommon (void)
         sdl_rect.x = 0;
         sdl_rect.y = 0;
         sdl_rect.w = config.video_size_x_px;
-        sdl_rect.h = TEXT_Y(4) + FONT_NORMAL_SIZE_Y_PX / 2;
+        sdl_rect.h = TEXT_Y(5) + FONT_NORMAL_SIZE_Y_PX / 2;
         SDL_FillRect(screen, &sdl_rect, background_color);
 
         gfx_line_draw (0, TEXT_Y(5), config.video_size_x_px, TEXT_Y(5));
@@ -219,17 +219,13 @@ void drawScript(wrappedScript_t * aWrappedScript)
 
 void drawScreen (void)
 {
-    if (redrawScreen)
-    {
-        // Restore background
-        SDL_BlitSurface(background, NULL, screen, NULL);
+    // Restore background
+    SDL_BlitSurface(background, NULL, screen, NULL);
 
-        drawScript(&wrappedScript);
-        printCommon ();
+    drawScript(&wrappedScript);
+    printCommon ();
 
-        SDL_Flip( screen );
-        redrawScreen = FALSE;
-    }
+    SDL_Flip( screen );
 }
 
 /**
