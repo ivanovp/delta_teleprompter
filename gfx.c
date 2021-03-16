@@ -132,12 +132,13 @@ void printCommon (void)
         sdl_rect.h = TEXT_Y(4) + FONT_NORMAL_SIZE_Y_PX / 2;
         SDL_FillRect(screen, &sdl_rect, background_color);
 
-        gfx_line_draw (0, TEXT_Y(4), config.video_size_x_px, TEXT_Y(4));
+        gfx_line_draw (0, TEXT_Y(5), config.video_size_x_px, TEXT_Y(5));
 
         gfx_font_print_center(TEXT_Y(1), "** PAUSED **");
         snprintf (s, sizeof (s), "Delta Teleprompter v%i.%i.%i", VERSION_MAJOR, VERSION_MINOR, VERSION_REVISION);
         gfx_font_print_center(TEXT_Y(2), s);
-        gfx_font_print_center(TEXT_Y(3), "Copyright (C) Peter Ivanov <ivanovp@gmail.com>, 2021");
+        gfx_font_print_center(TEXT_Y(3), "Copyright (C) Peter Ivanov");
+        gfx_font_print_center(TEXT_Y(4), "<ivanovp@gmail.com>, 2021");
     }
     else
     {
@@ -291,7 +292,7 @@ void drawHelpScreen(void)
     uint16_t y_center = config.video_size_y_px / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(helpText) / sizeof(helpText[0]) / 2);
     for (i = 0; i < sizeof(helpText) / sizeof(helpText[0]); i++)
     {
-        gfx_font_print_small_center(TEXT_SMALL_Y(y_center + i), (char*) helpText[i]);
+        gfx_font_small_print_center(TEXT_SMALL_Y(y_center + i), (char*) helpText[i]);
     }
     SDL_Flip(screen);
 }
@@ -313,6 +314,36 @@ void gfx_font_print_center(int y, const char *str)
         }
 
         sdl_rect.x = screen->w / 2 - len / 2 * FONT_NORMAL_SIZE_X_PX;
+        sdl_rect.y = y;
+        sdl_rect.w = sdl_text->clip_rect.w;
+        sdl_rect.h = sdl_text->clip_rect.h;
+
+        // Apply the text to the display
+        if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
+        {
+            printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
+        }
+
+        SDL_FreeSurface(sdl_text);
+    }
+}
+
+void gfx_font_small_print_center(int y, const char *str)
+{
+    SDL_Surface   * sdl_text;
+    SDL_Rect        sdl_rect;
+    SDL_Color       sdlTextColor = config.text_color;
+    int             len = strlen(str);
+
+    if (len)
+    {
+        sdl_text = TTF_RenderUTF8_Blended(ttf_font_small_monospace, str, sdlTextColor);
+        if (sdl_text == NULL)
+        {
+            errorprintf("TTF_RenderText_Solid() Failed: %s\n", TTF_GetError());
+        }
+
+        sdl_rect.x = screen->w / 2 - len / 2 * FONT_SMALL_SIZE_X_PX;
         sdl_rect.y = y;
         sdl_rect.w = sdl_text->clip_rect.w;
         sdl_rect.h = sdl_text->clip_rect.h;

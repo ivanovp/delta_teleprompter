@@ -92,6 +92,7 @@ extern main_state_machine_t main_state_machine; /* Teleprompter state machine. @
 extern config_t     config; /* Actual configuration. */
 
 extern TTF_Font * ttf_font_monospace;
+extern TTF_Font * ttf_font_small_monospace;
 
 bool_t saveConfig (void);
 bool_t eventHandler();

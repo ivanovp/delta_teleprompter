@@ -146,6 +146,10 @@ TTF_Font * ttf_font_monospace = NULL;
 uint16_t ttf_font_monospace_size = 1;
 int ttf_font_size_x = 1;
 int ttf_font_size_y = 1;
+TTF_Font * ttf_font_small_monospace = NULL;
+uint16_t ttf_font_small_monospace_size = 1;
+int ttf_font_small_size_x = 1;
+int ttf_font_small_size_y = 1;
 
 /* Symbols for DejaVuSans.o which is directly converted from .ttf to object using 'ld' */
 extern uint8_t _binary_DejaVuSans_ttf_start[];
@@ -1092,6 +1096,19 @@ bool_t init (int argc, char* argv[])
     /* Letter 'A' is used... */
     TTF_SizeText(ttf_font_monospace, "A", &ttf_font_size_x, &ttf_font_size_y);
 
+    // Load TrueType font which is embedded into this software
+    rwops = SDL_RWFromConstMem(_binary_consola_ttf_start, (size_t)&_binary_consola_ttf_size);
+    ttf_font_small_monospace_size = config.video_size_y_px / 28;
+    ttf_font_small_monospace = TTF_OpenFontRW(rwops, 1, ttf_font_small_monospace_size);
+    if (ttf_font_small_monospace == NULL)
+    {
+        errorprintf("TTF_OpenFontRW() Failed: %s\n", TTF_GetError());
+        exit(1);
+    }
+    /* The font is monospace, so every character should have same geometry */
+    /* Letter 'A' is used... */
+    TTF_SizeText(ttf_font_small_monospace, "A", &ttf_font_small_size_x, &ttf_font_small_size_y);
+
     for (i = 0; i < sizeof(keys) / sizeof(keys[0]); i++)
     {
         keys[i].repeatTick = NORMAL_REPEAT_TICK;
@@ -1728,6 +1745,10 @@ void done (void)
     if (ttf_font_monospace)
     {
         TTF_CloseFont(ttf_font_monospace);
+    }
+    if (ttf_font_small_monospace)
+    {
+        TTF_CloseFont(ttf_font_small_monospace);
     }
 
     //Free the surfaces
