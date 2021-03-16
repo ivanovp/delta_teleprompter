@@ -64,7 +64,7 @@ SDL_Surface * loadImage(const char* filename)
   SDL_Surface* loadedImage = NULL;
   SDL_Surface* optimizedImage = NULL;
 
-  printf("Loading %s...", filename);
+  verboseprintf("Loading %s...", filename);
   loadedImage = IMG_Load (filename);
 
   // Check if image loaded
@@ -84,16 +84,16 @@ SDL_Surface * loadImage(const char* filename)
           // Set all pixels of color R 0xFF, G 0, B 0xFF to be transparent
           SDL_SetColorKey (optimizedImage, SDL_SRCCOLORKEY, colorkey);
 
-          printf("Done\n");
+          verboseprintf("Done\n");
       }
       else
       {
-        printf("Error: cannot optimize image!\n");
+        errorprintf("Cannot optimize image!\n");
       }
   }
   else
   {
-    printf("Error: cannot load image!\n");
+    errorprintf("Cannot load image!\n");
   }
 
   // Return the optimized image
@@ -121,8 +121,8 @@ void printCommon (void)
     }
     if (TELEPROMPTER_IS_FINISHED())
     {
-        gfx_font_print_center(TEXT_Y_CENTER(0), "Press 'ENTER' to replay,");
-        gfx_font_print_center(TEXT_Y_CENTER(1), "'ESCAPE' to quit...");
+        gfx_font_print_center(TEXT_Y_CENTER(0), "Press Enter/Space to replay,");
+        gfx_font_print_center(TEXT_Y_CENTER(1), "Escape to quit...");
     }
     else if (TELEPROMPTER_IS_PAUSED())
     {
@@ -163,17 +163,17 @@ void drawScript(wrappedScript_t * aWrappedScript)
     sdl_rect.x = x;
     sdl_rect.y = y;
 
-//    printf("%s start\n", __FUNCTION__);
+    debugprintf("%s start\n", __FUNCTION__);
     /* Display lines of script until reaching end of script or end of display */
-    while (linkedListElement && sdl_rect.y < config->video_size_y_px)
+    while (linkedListElement && sdl_rect.y < (Sint16)config->video_size_y_px)
     {
         text = (char*)linkedListElement->item;
-//        printf("[%s]\n", text);
+        debugprintf("y: %i\t[%s]\n", y, text);
 
         sdl_text = TTF_RenderUTF8_Blended(ttfFont, text, sdlTextColor);
         if (sdl_text == NULL)
         {
-            printf("TTF_RenderUTF8_Blended() Failed: %s\n", TTF_GetError());
+            errorprintf("TTF_RenderUTF8_Blended() Failed: %s\n", TTF_GetError());
             break;
         }
 
@@ -188,7 +188,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
         // Apply the text to the display
         if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
         {
-            printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
+            errorprintf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
         }
 
         SDL_FreeSurface(sdl_text);
@@ -214,7 +214,7 @@ void drawScript(wrappedScript_t * aWrappedScript)
     sdl_rect.h = y_hide_px;
     SDL_FillRect(screen, &sdl_rect, background_color);
 
-//    printf("%s end\n", __FUNCTION__);
+    debugprintf("%s end\n", __FUNCTION__);
 }
 
 void drawScreen (void)
@@ -228,6 +228,7 @@ void drawScreen (void)
         printCommon ();
 
         SDL_Flip( screen );
+        redrawScreen = FALSE;
     }
 }
 
@@ -308,7 +309,7 @@ void gfx_font_print_center(int y, const char *str)
     SDL_Color       sdlTextColor = config.text_color;
     int             len = strlen(str);
 
-    if (len)
+    if (len && ttf_font_monospace)
     {
         sdl_text = TTF_RenderUTF8_Blended(ttf_font_monospace, str, sdlTextColor);
         if (sdl_text == NULL)
@@ -324,7 +325,7 @@ void gfx_font_print_center(int y, const char *str)
         // Apply the text to the display
         if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
         {
-            printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
+            errorprintf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
         }
 
         SDL_FreeSurface(sdl_text);
@@ -338,7 +339,7 @@ void gfx_font_small_print_center(int y, const char *str)
     SDL_Color       sdlTextColor = config.text_color;
     int             len = strlen(str);
 
-    if (len)
+    if (len && ttf_font_small_monospace)
     {
         sdl_text = TTF_RenderUTF8_Blended(ttf_font_small_monospace, str, sdlTextColor);
         if (sdl_text == NULL)
@@ -354,7 +355,7 @@ void gfx_font_small_print_center(int y, const char *str)
         // Apply the text to the display
         if (SDL_BlitSurface(sdl_text, NULL, screen, &sdl_rect) != 0)
         {
-            printf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
+            errorprintf("SDL_BlitSurface() Failed: %s\n", SDL_GetError());
         }
 
         SDL_FreeSurface(sdl_text);

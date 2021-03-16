@@ -142,14 +142,17 @@ wrappedScript_t wrappedScript =
 };
 SDL_TimerID autoScrollTimer = NULL;
 bool_t printConfig = FALSE; /* Only print actual configuration then exit */
+/* Normal monospace font */
 TTF_Font * ttf_font_monospace = NULL;
 uint16_t ttf_font_monospace_size = 1;
 int ttf_font_size_x = 1;
 int ttf_font_size_y = 1;
+/* Small monospace font */
 TTF_Font * ttf_font_small_monospace = NULL;
 uint16_t ttf_font_small_monospace_size = 1;
 int ttf_font_small_size_x = 1;
 int ttf_font_small_size_y = 1;
+
 bool_t redrawScreen = TRUE;
 
 /* Symbols for DejaVuSans.o which is directly converted from .ttf to object using 'ld' */
@@ -287,7 +290,6 @@ bool_t loadFont(const char * aFontFilePath, int aFontSize, wrappedScript_t *aWra
         verboseprintf("Done.\n");
     }
     // Load a TrueType font
-    verboseprintf("Font size: %i\n", aFontSize);
     if (aFontFilePath != NULL && strlen(aFontFilePath))
     {
         verboseprintf("Loading font '%s'... ", aFontFilePath);
@@ -302,16 +304,6 @@ bool_t loadFont(const char * aFontFilePath, int aFontSize, wrappedScript_t *aWra
         }
     }
 
-#if 0
-    if (wrappedScript.ttf_font == NULL)
-    {
-        wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/TTF/DejaVuSans.ttf", aFontSize);
-    }
-    if (wrappedScript.ttf_font == NULL)
-    {
-        wrappedScript.ttf_font = TTF_OpenFont("/usr/share/fonts/trutype/dejavu/DejaVuSans.ttf", aFontSize);
-    }
-#endif
     if (aWrappedScript->ttf_font == NULL)
     {
         verboseprintf("Loading embedded font\n");
@@ -1131,7 +1123,7 @@ bool_t init (int argc, char* argv[])
 void scrollScriptUpPx(wrappedScript_t * aWrappedScript)
 {
     aWrappedScript->heightOffsetPx++;
-    if (aWrappedScript->heightOffsetPx == aWrappedScript->wrappedScriptHeightPx
+    if (aWrappedScript->heightOffsetPx >= aWrappedScript->wrappedScriptHeightPx
             && aWrappedScript->wrappedScriptList.actual)
     {
         if (aWrappedScript->wrappedScriptList.actual->next)
@@ -1746,14 +1738,17 @@ void done (void)
     if (wrappedScript.ttf_font)
     {
         TTF_CloseFont(wrappedScript.ttf_font);
+        wrappedScript.ttf_font = NULL;
     }
     if (ttf_font_monospace)
     {
         TTF_CloseFont(ttf_font_monospace);
+        ttf_font_monospace = NULL;
     }
     if (ttf_font_small_monospace)
     {
         TTF_CloseFont(ttf_font_small_monospace);
+        ttf_font_small_monospace = NULL;
     }
 
     //Free the surfaces

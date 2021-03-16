@@ -109,13 +109,13 @@ bool_t addScriptElement(char * aText, linkedList_t * aLinkedList)
         }
         else
         {
-            printf("ERROR: cannot allocate memory for list element!\n");
+            errorprintf("Cannot allocate memory for list element!\n");
             ok = FALSE;
         }
     }
     else
     {
-        printf("ERROR: cannot allocate memory for text!\n");
+        errorprintf("Cannot allocate memory for text!\n");
         ok = FALSE;
     }
 

@@ -45,6 +45,11 @@
 
 #define USE_INTERNAL_SDL_FONT       0
 
+#if DEBUG
+#define debugprintf(...)            printf(__VA_ARGS__)
+#else
+#define debugprintf(...)
+#endif
 #define verboseprintf(...)          if (config.verbose) printf(__VA_ARGS__)
 #define errorprintf(...)            printf("ERROR: "); printf(__VA_ARGS__)
 
