@@ -93,7 +93,7 @@ extern config_t     config; /* Actual configuration. */
 
 extern TTF_Font * ttf_font_monospace;
 extern TTF_Font * ttf_font_small_monospace;
-extern uint8_t redrawScreen;
+extern bool_t redrawScreen;
 
 bool_t saveConfig (void);
 bool_t eventHandler();
