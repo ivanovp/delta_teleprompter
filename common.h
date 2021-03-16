@@ -40,10 +40,10 @@
 #define TELEPROMPTER_IS_RUNNING()   (main_state_machine == STATE_running)
 #define TELEPROMPTER_IS_FINISHED()  (main_state_machine == STATE_end)
 
-#define MAX_PATH_LEN        512
-#define OS_TICKS_PER_SEC    1000
+#define MAX_PATH_LEN                512
+#define OS_TICKS_PER_SEC            1000
 
-#define USE_INTERNAL_SDL_FONT   0
+#define USE_INTERNAL_SDL_FONT       0
 
 #define verboseprintf(...)          if (config.verbose) printf(__VA_ARGS__)
 #define errorprintf(...)            printf("ERROR: "); printf(__VA_ARGS__)

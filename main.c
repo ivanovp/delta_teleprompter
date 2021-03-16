@@ -143,7 +143,7 @@ wrappedScript_t wrappedScript =
 SDL_TimerID autoScrollTimer = NULL;
 bool_t printConfig = FALSE; /* Only print actual configuration then exit */
 TTF_Font * ttf_font_monospace = NULL;
-uint16_t ttf_font_monospace_size = 16;
+uint16_t ttf_font_monospace_size = 1;
 int ttf_font_size_x = 1;
 int ttf_font_size_y = 1;
 
@@ -1081,7 +1081,7 @@ bool_t init (int argc, char* argv[])
     verboseprintf("Loading embedded monospace font\n");
     // Load TrueType font which is embedded into this software
     SDL_RWops* rwops = SDL_RWFromConstMem(_binary_consola_ttf_start, (size_t)&_binary_consola_ttf_size);
-    ttf_font_monospace_size = config.video_size_y_px / 26;
+    ttf_font_monospace_size = config.video_size_y_px / 16;
     ttf_font_monospace = TTF_OpenFontRW(rwops, 1, ttf_font_monospace_size);
     if (ttf_font_monospace == NULL)
     {

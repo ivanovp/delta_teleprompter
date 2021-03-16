@@ -248,8 +248,8 @@ void drawInfoScreen (const char *aFmt, ...)
     va_start (valist, aFmt);
     vsnprintf (buf, sizeof (buf), aFmt, valist);
     va_end (valist);
-    SDL_BlitSurface( background, NULL, screen, NULL );
-    gfx_font_print_center (screen->h / 2, buf);
+    SDL_BlitSurface(background, NULL, screen, NULL);
+    gfx_font_print_center(screen->h / 2, buf);
     SDL_Flip(screen);
     while (delayCntr-- && !eventHandler())
     {
@@ -288,10 +288,10 @@ void drawHelpScreen(void)
     uint8_t i;
 
     SDL_BlitSurface(background, NULL, screen, NULL);
-    uint16_t y_center = config.video_size_y_px / FONT_NORMAL_SIZE_Y_PX / 2 - (sizeof(helpText) / sizeof(helpText[0]) / 2);
+    uint16_t y_center = config.video_size_y_px / FONT_SMALL_SIZE_Y_PX / 2 - (sizeof(helpText) / sizeof(helpText[0]) / 2);
     for (i = 0; i < sizeof(helpText) / sizeof(helpText[0]); i++)
     {
-        gfx_font_print_center(TEXT_Y(y_center + i), (char*) helpText[i]);
+        gfx_font_print_small_center(TEXT_SMALL_Y(y_center + i), (char*) helpText[i]);
     }
     SDL_Flip(screen);
 }

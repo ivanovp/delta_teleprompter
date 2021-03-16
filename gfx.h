@@ -15,9 +15,11 @@
 #include "common.h"
 #include "linkedlist.h"
 
+#define FONT_SMALL_SIZE_X_PX    8
+#define FONT_SMALL_SIZE_Y_PX    12
 #if USE_INTERNAL_SDL_FONT
-#define FONT_NORMAL_SIZE_X_PX   8
-#define FONT_NORMAL_SIZE_Y_PX   12
+#define FONT_NORMAL_SIZE_X_PX   FONT_SMALL_SIZE_X_PX
+#define FONT_NORMAL_SIZE_Y_PX   FONT_SMALL_SIZE_Y_PX
 #else
 extern int ttf_font_size_x;
 extern int ttf_font_size_y;
@@ -30,13 +32,18 @@ extern int ttf_font_size_y;
 #define TEXT_X(x)               (TEXT_X_0 + FONT_NORMAL_SIZE_X_PX * (x))
 #define TEXT_Y(y)               (TEXT_Y_0 + (FONT_NORMAL_SIZE_Y_PX) * (y))
 #define TEXT_Y_CENTER(y)        (screen->h / 2 + (FONT_NORMAL_SIZE_Y_PX) * (y))
+#define TEXT_SMALL_X(x)         (TEXT_X_0 + FONT_SMALL_SIZE_X_PX * (x))
+#define TEXT_SMALL_Y(y)         (TEXT_Y_0 + (FONT_SMALL_SIZE_Y_PX) * (y))
+#define TEXT_SMALL_Y_CENTER(y)  (screen->h / 2 + (FONT_SMALL_SIZE_Y_PX) * (y))
 
 #if USE_INTERNAL_SDL_FONT
 #define gfx_font_print(x,y,s)                   stringRGBA(screen, x, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
 #define gfx_font_print_fromright(x,y,s)         stringRGBA(screen, x - strlen(s) * FONT_NORMAL_SIZE_X_PX, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
 #define gfx_font_print_center(y,s)              stringRGBA(screen, screen->w / 2 - strlen(s) / 2 * FONT_NORMAL_SIZE_X_PX, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
+#define gfx_font_print_small_center(y,s)        gfx_font_print_center(y,s)
 #else
 void gfx_font_print_center(int y, const char * str);
+#define gfx_font_print_small_center(y,s)        stringRGBA(screen, screen->w / 2 - strlen(s) / 2 * FONT_SMALL_SIZE_X_PX, y, s, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
 #endif
 
 #define gfx_line_draw(x1, y1, x2, y2)                lineRGBA(screen, x1, y1, x2, y2, config.text_color.r, config.text_color.g, config.text_color.b, 0xFF)
