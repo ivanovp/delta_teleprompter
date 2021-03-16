@@ -219,13 +219,16 @@ void drawScript(wrappedScript_t * aWrappedScript)
 
 void drawScreen (void)
 {
-    // Restore background
-    SDL_BlitSurface(background, NULL, screen, NULL);
+    if (redrawScreen)
+    {
+        // Restore background
+        SDL_BlitSurface(background, NULL, screen, NULL);
 
-    drawScript(&wrappedScript);
-    printCommon ();
+        drawScript(&wrappedScript);
+        printCommon ();
 
-    SDL_Flip( screen );
+        SDL_Flip( screen );
+    }
 }
 
 /**

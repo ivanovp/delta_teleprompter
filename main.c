@@ -150,6 +150,7 @@ TTF_Font * ttf_font_small_monospace = NULL;
 uint16_t ttf_font_small_monospace_size = 1;
 int ttf_font_small_size_x = 1;
 int ttf_font_small_size_y = 1;
+bool_t redrawScreen = TRUE;
 
 /* Symbols for DejaVuSans.o which is directly converted from .ttf to object using 'ld' */
 extern uint8_t _binary_DejaVuSans_ttf_start[];
@@ -544,6 +545,7 @@ bool_t wrapScript(char * aScriptBuffer, uint16_t aMaxWidthPx, uint16_t aMaxHeigh
         addScriptElement(text, &(aWrappedScript->wrappedScriptList));
         aWrappedScript->wrappedScriptList.actual = aWrappedScript->wrappedScriptList.first;
         aWrappedScript->wrappedScriptHeightPx = text_height_px;
+        redrawScreen = TRUE;
     }
     else
     {
@@ -1144,6 +1146,7 @@ void scrollScriptUpPx(wrappedScript_t * aWrappedScript)
             aWrappedScript->isEnd = TRUE;
         }
     }
+    redrawScreen = TRUE;
 }
 
 /**
@@ -1170,6 +1173,7 @@ void scrollScriptUp(wrappedScript_t * aWrappedScript, int lineCount)
         }
         lineCount--;
     }
+    redrawScreen = TRUE;
 }
 
 /**
@@ -1189,6 +1193,7 @@ void scrollScriptDown(wrappedScript_t * aWrappedScript, int lineCount)
         }
         lineCount--;
     }
+    redrawScreen = TRUE;
 }
 
 /**
